@@ -176,11 +176,14 @@
   .legend-swatch { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
 </style>
 
-{{if .Error}}
+{{if .ErrorDE}}
   <div class="dashboard">
     <div class="card error-card" style="text-align:center;padding:2rem">
       <div style="font-size:2.5rem;margin-bottom:1rem">⚠️</div>
-      <div style="color:var(--warn);font-weight:600;margin-bottom:1rem">{{.Error}}</div>
+      <div style="color:var(--warn);font-weight:600;margin-bottom:1rem">
+        <span data-de>{{.ErrorDE}}</span>
+        <span data-en>{{.ErrorEN}}</span>
+      </div>
       <a href="/" style="display:inline-block;padding:.7rem 1.5rem;background:linear-gradient(135deg,#0099bb,#0066aa);border-radius:8px;color:#fff;font-weight:600;text-decoration:none">
         <span data-de>← Zurück</span><span data-en>← Back</span>
       </a>
@@ -223,9 +226,26 @@
   </div>
 
   {{/* ── Data availability notices ── */}}
-  {{if .DataWarnings}}
+  {{if or .OWFailed .KpFailed .DiPULFailed}}
   <div class="warnings-section">
-    {{range .DataWarnings}}<div class="data-warning-item">⚠️ {{.}}</div>{{end}}
+    {{if .OWFailed}}
+    <div class="data-warning-item">⚠️
+      <span data-de>Taupunkt-Daten nicht verfügbar (OpenWeatherMap) – Nebelgefahr kann nicht berechnet werden.</span>
+      <span data-en>Dew point data unavailable (OpenWeatherMap) – fog risk cannot be assessed.</span>
+    </div>
+    {{end}}
+    {{if .KpFailed}}
+    <div class="data-warning-item">⚠️
+      <span data-de>Kp-Index nicht verfügbar (GFZ Potsdam) – GPS-Zuverlässigkeit kann nicht bewertet werden.</span>
+      <span data-en>Kp-Index unavailable (GFZ Potsdam) – GPS reliability cannot be assessed.</span>
+    </div>
+    {{end}}
+    {{if .DiPULFailed}}
+    <div class="data-warning-item">⚠️
+      <span data-de>Luftraumdaten nicht verfügbar (DiPUL) – Luftraum bitte manuell prüfen.</span>
+      <span data-en>Airspace data unavailable (DiPUL) – please check airspace manually.</span>
+    </div>
+    {{end}}
   </div>
   {{end}}
 
@@ -397,7 +417,7 @@
 {{end}}{{/* else error */}}
 
 <script>
-{{if not .Error}}
+{{if not .ErrorDE}}
 (function() {
   var WMS_BASE  = 'https://uas-betrieb.de/geoservices/dipul/wms';
   var WMS_OWS   = 'https://uas-betrieb.de/geoservices/dipul/ows';

@@ -28,8 +28,11 @@ type resultsData struct {
 	Assessment   *assessment.Assessment
 	Zones        []api.AffectedArea
 	ZonesGeoJSON template.JS // safe JS — injected directly into <script>
-	DataWarnings []string    // non-fatal service degradation notices
-	Error        string
+	OWFailed    bool // OpenWeatherMap unavailable
+	KpFailed    bool // Kp-Index unavailable
+	DiPULFailed bool // DiPUL airspace data unavailable
+	ErrorDE     string
+	ErrorEN     string
 }
 
 type allFetched struct {
@@ -73,18 +76,18 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	address := r.FormValue("address")
 	if address == "" {
-		h.renderError(w, "Bitte geben Sie eine Adresse ein.")
+		h.renderError(w, "Bitte geben Sie eine Adresse ein.", "Please enter an address.")
 		return
 	}
 	if len(address) > 100 {
-		h.renderError(w, "Adresse zu lang (max. 100 Zeichen).")
+		h.renderError(w, "Adresse zu lang (max. 100 Zeichen).", "Address too long (max. 100 characters).")
 		return
 	}
 
 	geo, err := api.Geocode(address, h.hereAPIKey)
 	if err != nil {
 		log.Printf("[results] geocode error: %v", err)
-		h.renderError(w, "Adresse nicht gefunden.")
+		h.renderError(w, "Adresse nicht gefunden. Bitte prüfen Sie die Eingabe.", "Address not found. Please check your input.")
 		return
 	}
 
@@ -100,20 +103,13 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if fetched.utm == nil {
-		h.renderError(w, "Wetterdaten (UTM/DFS) konnten nicht abgerufen werden. Bitte später erneut versuchen.")
+		h.renderError(w, "Wetterdaten (UTM/DFS) nicht verfügbar. Bitte später erneut versuchen.", "Weather data (UTM/DFS) unavailable. Please try again later.")
 		return
 	}
 
-	var dataWarnings []string
-	if fetched.errs[1] != nil {
-		dataWarnings = append(dataWarnings, "Taupunkt-Daten nicht verfügbar (OpenWeatherMap). Nebelgefahr kann nicht berechnet werden.")
-	}
-	if fetched.errs[2] != nil {
-		dataWarnings = append(dataWarnings, "Kp-Index nicht verfügbar (GFZ Potsdam). GPS-Zuverlässigkeit kann nicht bewertet werden.")
-	}
-	if fetched.errs[3] != nil {
-		dataWarnings = append(dataWarnings, "Luftraumdaten nicht verfügbar (DiPUL). Bitte Luftraum manuell prüfen.")
-	}
+	owFailed    := fetched.errs[1] != nil
+	kpFailed    := fetched.errs[2] != nil
+	dipulFailed := fetched.errs[3] != nil
 
 	a := assessment.Assess(fetched.utm, fetched.ow, fetched.kp)
 
@@ -130,7 +126,9 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Assessment:   a,
 		Zones:        fetched.zones,
 		ZonesGeoJSON: template.JS(zonesJSON),
-		DataWarnings: dataWarnings,
+		OWFailed:     owFailed,
+		KpFailed:     kpFailed,
+		DiPULFailed:  dipulFailed,
 	}
 
 	if err := h.tmpl.ExecuteTemplate(w, "results.html", data); err != nil {
@@ -139,8 +137,8 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *ResultsHandler) renderError(w http.ResponseWriter, msg string) {
-	if err := h.tmpl.ExecuteTemplate(w, "results.html", resultsData{Error: msg}); err != nil {
-		http.Error(w, msg, http.StatusInternalServerError)
+func (h *ResultsHandler) renderError(w http.ResponseWriter, de, en string) {
+	if err := h.tmpl.ExecuteTemplate(w, "results.html", resultsData{ErrorDE: de, ErrorEN: en}); err != nil {
+		http.Error(w, de, http.StatusInternalServerError)
 	}
 }

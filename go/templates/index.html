@@ -1,0 +1,173 @@
+{{template "head" .}}
+
+<style>
+  .page {
+    min-height: calc(100vh - 60px); /* leave room for footer */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+  }
+
+  .hero-card {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .brand-name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    white-space: nowrap;
+  }
+
+  .brand-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: .5rem;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: .8rem 1rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 16px; /* 16px prevents iOS auto-zoom */
+    outline: none;
+    transition: border-color .15s;
+    -webkit-appearance: none;
+  }
+  input[type="text"]::placeholder { color: var(--muted); }
+  input[type="text"]:focus { border-color: var(--ok); box-shadow: 0 0 0 3px rgba(0,212,255,.12); }
+
+  html[data-theme="light"] input[type="text"]:focus {
+    box-shadow: 0 0 0 3px rgba(0,136,170,.15);
+  }
+
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    width: 100%;
+    margin-top: .85rem;
+    padding: .9rem;
+    background: linear-gradient(135deg, #0099bb, #0066aa);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity .15s;
+    min-height: 48px; /* touch target */
+  }
+  .btn-primary:hover { opacity: .88; }
+  .btn-primary:active { opacity: .75; }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 1.25rem 0;
+  }
+
+  .scope-badges {
+    display: flex;
+    gap: .4rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .info-row {
+    margin-top: 1rem;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.6;
+  }
+</style>
+
+<main class="page">
+  <div class="card hero-card">
+    <div class="brand">
+      <div>
+        <div class="brand-name">🛸 Drone Weather <span style="color: #ff4444;">[BETA]</span></div>
+        <div class="brand-sub">
+          <span data-de>DJI M30T · Wetter &amp; Luftraum · Deutschland</span>
+          <span data-en>DJI M30T · Weather &amp; Airspace · Germany</span>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark/light mode">☀️</button>
+        <div class="lang-toggle">
+          <button class="lang-btn" data-l="de" onclick="setLang('de')">DE</button>
+          <button class="lang-btn" data-l="en" onclick="setLang('en')">EN</button>
+        </div>
+      </div>
+    </div>
+
+    <form method="POST" action="/results">
+      <label for="address">
+        <span data-de>Standortadresse</span>
+        <span data-en>Location Address</span>
+      </label>
+      <input
+        id="address"
+        name="address"
+        type="text"
+        maxlength="100"
+        required
+        placeholder="z. B. Marienplatz 1, München"
+        autocomplete="street-address"
+        autofocus
+        enterkeyhint="search"
+      >
+      <button type="submit" class="btn-primary">
+        ▶&nbsp;
+        <span data-de>Prüfen</span>
+        <span data-en>Check</span>
+      </button>
+    </form>
+
+    <div class="divider"></div>
+
+    <div class="scope-badges">
+      <span class="badge badge-ok">DFS UTM</span>
+      <span class="badge badge-ok">OpenWeatherMap</span>
+      <span class="badge badge-ok">DiPUL</span>
+      <span class="badge badge-ok">GFZ Kp-Index</span>
+      <span class="badge badge-ok">HERE Maps</span>
+    </div>
+
+    <div class="info-row">
+      <span data-de>Nur für Deutschland · Betrieb in VLOS · Keine Haftung</span>
+      <span data-en>Germany only · VLOS operations · No liability</span>
+    </div>
+  </div>
+</main>
+
+{{template "uiscript" .}}
+{{template "footer" .}}

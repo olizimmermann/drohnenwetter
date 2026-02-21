@@ -1,0 +1,550 @@
+{{template "head" .}}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  /* ── Layout ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .65rem 1rem;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .topbar-left { display: flex; align-items: center; gap: .6rem; min-width: 0; }
+  .back-link { color: var(--muted); font-size: 14px; white-space: nowrap; flex-shrink: 0; }
+  .location-label {
+    font-weight: 600; font-size: 13px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    min-width: 0;
+  }
+
+  .dashboard { padding: 1rem; max-width: 1400px; margin: 0 auto; }
+
+  /* ── Mobile ── */
+  @media (max-width: 480px) {
+    .dashboard { padding: .75rem; }
+    .metrics-row { grid-template-columns: repeat(2, 1fr); gap: .6rem; }
+    .metric-value { font-size: 1.35rem; }
+    #map { height: 300px; }
+    .zones-list { max-height: 220px; }
+    .detail-grid { grid-template-columns: 1fr; }
+    .topbar { padding: .55rem .75rem; }
+    .location-label { font-size: 12px; }
+  }
+
+  /* ── Status banner ── */
+  .status-banner {
+    display: flex; align-items: center; gap: .75rem;
+    padding: 1rem 1.25rem; border-radius: var(--radius);
+    margin-bottom: 1.25rem; font-weight: 600; font-size: 1rem;
+  }
+  .status-banner.ok   { background: rgba(0,212,255,.07); border: 1px solid rgba(0,212,255,.25); color: var(--ok); }
+  .status-banner.warn { background: rgba(255,71,87,.07);  border: 1px solid rgba(255,71,87,.25);  color: var(--warn); }
+  .status-icon { font-size: 1.4rem; }
+
+  /* ── Metric cards ── */
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+    gap: 1rem; margin-bottom: 1.25rem;
+  }
+  .metric-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1rem 1.1rem;
+  }
+  .metric-card.ok   { border-top: 3px solid var(--ok); }
+  .metric-card.warn { border-top: 3px solid var(--warn); }
+  .metric-card.neutral { border-top: 3px solid var(--border); }
+  .metric-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .35rem; }
+  .metric-value { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+  .metric-unit  { font-size: 12px; color: var(--muted); margin-left: 2px; }
+  .metric-icon  { font-size: 1.2rem; float: right; margin-top: -1px; }
+  .metric-sub   { font-size: 11px; color: var(--muted); margin-top: .4rem; }
+
+  /* ── Map + zones grid ── */
+  .body-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 1rem; margin-bottom: 1.25rem;
+  }
+  @media (max-width: 800px) { .body-grid { grid-template-columns: 1fr; } }
+
+  #map { height: 440px; border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+
+  /* ── Zones panel ── */
+  .zones-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden;
+  }
+  .zones-header {
+    padding: .75rem 1rem; font-size: 12px; font-weight: 600;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .06em;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .zones-list { flex: 1; overflow-y: auto; max-height: 380px; }
+  .zone-item {
+    display: flex; align-items: flex-start; gap: .65rem;
+    padding: .65rem 1rem; border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .zone-item:last-child { border-bottom: none; }
+  .zone-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; margin-top: 4px; }
+  .zone-name { font-weight: 500; line-height: 1.3; }
+  .zone-type { font-size: 11px; color: var(--muted); }
+  .no-zones { padding: 1.5rem 1rem; text-align: center; color: var(--muted); font-size: 13px; }
+
+  /* ── Detail tables ── */
+  .detail-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem;
+  }
+  .detail-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .detail-title {
+    padding: .7rem 1rem; font-size: 12px; font-weight: 600;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .06em;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: .5rem 1rem; font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { color: var(--muted); }
+  .detail-val { font-weight: 600; }
+  .detail-val.ok   { color: var(--ok); }
+  .detail-val.warn { color: var(--warn); }
+
+  /* ── Warnings ── */
+  .warnings-section { margin-bottom: 1.25rem; }
+  .warning-item {
+    display: flex; align-items: center; gap: .5rem;
+    padding: .55rem .9rem;
+    background: rgba(255,71,87,.06); border: 1px solid rgba(255,71,87,.2);
+    border-radius: 8px; font-size: 13px; color: var(--warn); margin-bottom: .4rem;
+  }
+
+  /* ── Error state ── */
+  .error-card { max-width: 480px; margin: 4rem auto; text-align: center; }
+
+  /* ── Detail row separator (light-mode safe) ── */
+  .detail-row { border-bottom: 1px solid var(--border); }
+
+  /* ── Leaflet legend control ── */
+  .legend-ctrl {
+    background: var(--bg);
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    padding: 0;
+    overflow: hidden;
+    min-width: 210px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--shadow);
+  }
+  .legend-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .05em;
+    cursor: pointer; user-select: none;
+    background: var(--surface2);
+  }
+  .legend-header:hover { color: var(--text); }
+  .legend-body { padding: 4px 0; background: var(--bg); }
+  .legend-row {
+    display: flex; align-items: center; gap: 7px;
+    padding: 4px 10px; font-size: 12px; color: var(--text);
+  }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+</style>
+
+{{if .Error}}
+  <div class="dashboard">
+    <div class="card error-card" style="text-align:center;padding:2rem">
+      <div style="font-size:2.5rem;margin-bottom:1rem">⚠️</div>
+      <div style="color:var(--warn);font-weight:600;margin-bottom:1rem">{{.Error}}</div>
+      <a href="/" style="display:inline-block;padding:.7rem 1.5rem;background:linear-gradient(135deg,#0099bb,#0066aa);border-radius:8px;color:#fff;font-weight:600;text-decoration:none">
+        <span data-de>← Zurück</span><span data-en>← Back</span>
+      </a>
+    </div>
+  </div>
+{{else}}
+
+{{$a := .Assessment}}
+{{$gust := $a.WindGust}}
+{{$t50 := findAlt $a.Temperature "50m"}}
+
+<header class="topbar">
+  <div class="topbar-left">
+    <a class="back-link" href="/">← Drone Weather</a>
+    <span class="location-label">📍 {{.Address}}</span>
+  </div>
+  <div class="controls">
+    {{if $a.Flyable}}
+      <span class="badge badge-ok"><span data-de>FREIGEGEBEN</span><span data-en>CLEARED</span></span>
+    {{else}}
+      <span class="badge badge-warn"><span data-de>NICHT FREIGEGEBEN</span><span data-en>NOT CLEARED</span></span>
+    {{end}}
+    <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark/light mode">☀️</button>
+    <div class="lang-toggle">
+      <button class="lang-btn" data-l="de" onclick="setLang('de')">DE</button>
+      <button class="lang-btn" data-l="en" onclick="setLang('en')">EN</button>
+    </div>
+  </div>
+</header>
+
+<div class="dashboard">
+
+  {{/* ── Status banner ── */}}
+  <div class="status-banner {{if $a.Flyable}}ok{{else}}warn{{end}}">
+    <span class="status-icon">{{if $a.Flyable}}✅{{else}}🚫{{end}}</span>
+    <div>
+      <div data-de>{{if $a.Flyable}}Betrieb unbedenklich — alle Grenzwerte eingehalten{{else}}Betrieb nicht empfohlen — Warnungen vorhanden{{end}}</div>
+      <div data-en>{{if $a.Flyable}}Operation clear — all limits within range{{else}}Operation not recommended — warnings present{{end}}</div>
+    </div>
+  </div>
+
+  {{/* ── Warnings ── */}}
+  {{if or $a.WindWarnings $a.TempWarnings $a.DewPointWarning $a.KpWarning}}
+  <div class="warnings-section">
+    {{range $a.WindWarnings}}<div class="warning-item">💨 {{.}}</div>{{end}}
+    {{range $a.TempWarnings}}<div class="warning-item">🌡 {{.}}</div>{{end}}
+    {{if $a.DewPointWarning}}<div class="warning-item">🌫 {{$a.DewPointWarning}}</div>{{end}}
+    {{if $a.KpWarning}}<div class="warning-item">🧲 {{$a.KpWarning}}</div>{{end}}
+  </div>
+  {{end}}
+
+  {{/* ── Metric cards ── */}}
+  <div class="metrics-row">
+
+    <div class="metric-card {{if $a.Flyable}}ok{{else}}warn{{end}}">
+      <div class="metric-label" data-de>Flugstatus</div>
+      <div class="metric-label" data-en>Flight Status</div>
+      <span class="metric-icon">{{if $a.Flyable}}✅{{else}}🚫{{end}}</span>
+      <div class="metric-value" style="font-size:1.15rem;{{if $a.Flyable}}color:var(--ok){{else}}color:var(--warn){{end}}">
+        <span data-de>{{if $a.Flyable}}FREIGEGEBEN{{else}}GESPERRT{{end}}</span>
+        <span data-en>{{if $a.Flyable}}CLEARED{{else}}BLOCKED{{end}}</span>
+      </div>
+    </div>
+
+    <div class="metric-card {{if $gust.OK}}ok{{else}}warn{{end}}">
+      <div class="metric-label" data-de>Böen</div>
+      <div class="metric-label" data-en>Gusts</div>
+      <span class="metric-icon">💨</span>
+      <div class="metric-value" style="{{if $gust.OK}}color:var(--ok){{else}}color:var(--warn){{end}}">
+        {{printf "%.1f" $gust.Value}}<span class="metric-unit">m/s</span>
+      </div>
+      <div class="metric-sub">max. 12 m/s</div>
+    </div>
+
+    <div class="metric-card {{if $t50.OK}}ok{{else}}warn{{end}}">
+      <div class="metric-label" data-de>Temperatur (50m)</div>
+      <div class="metric-label" data-en>Temperature (50m)</div>
+      <span class="metric-icon">🌡</span>
+      <div class="metric-value" style="{{if $t50.OK}}color:var(--ok){{else}}color:var(--warn){{end}}">
+        {{printf "%.1f" $t50.Value}}<span class="metric-unit">°C</span>
+      </div>
+      <div class="metric-sub">−20 … +50°C</div>
+    </div>
+
+    <div class="metric-card {{if $a.DewPointOK}}ok{{else}}warn{{end}}">
+      <div class="metric-label" data-de>Taupunkt</div>
+      <div class="metric-label" data-en>Dew Point</div>
+      <span class="metric-icon">💧</span>
+      <div class="metric-value" style="{{if $a.DewPointOK}}color:var(--ok){{else}}color:var(--warn){{end}}">
+        {{printf "%.1f" $a.DewPoint}}<span class="metric-unit">°C</span>
+      </div>
+      <div class="metric-sub"><span data-de>Nebel &lt;2°C Abstand</span><span data-en>Fog &lt;2°C margin</span></div>
+    </div>
+
+    <div class="metric-card {{if $a.KpOK}}ok{{else}}warn{{end}}">
+      <div class="metric-label">Kp-Index</div>
+      <span class="metric-icon">🧲</span>
+      <div class="metric-value" style="{{if $a.KpOK}}color:var(--ok){{else}}color:var(--warn){{end}}">
+        {{printf "%.1f" $a.KpIndex}}
+      </div>
+      <div class="metric-sub"><span data-de>max. 4 (GPS-Störung)</span><span data-en>max. 4 (GPS interference)</span></div>
+    </div>
+
+    <div class="metric-card neutral">
+      <div class="metric-label" data-de>Bewölkung</div>
+      <div class="metric-label" data-en>Cloud Cover</div>
+      <span class="metric-icon">☁️</span>
+      <div class="metric-value" style="color:var(--text)">{{printf "%.0f" $a.CloudCover}}<span class="metric-unit">%</span></div>
+      <div class="metric-sub">{{printf "%.2f" $a.RainMM}} mm · {{printf "%.2f" $a.SnowCM}} cm</div>
+    </div>
+
+  </div>
+
+  {{/* ── Map + Zones ── */}}
+  <div class="body-grid">
+    <div id="map"></div>
+
+    <div class="zones-panel">
+      <div class="zones-header">
+        <span>
+          <span data-de>Luftraumzonen ({{len .Zones}})</span>
+          <span data-en>Airspace Zones ({{len .Zones}})</span>
+        </span>
+      </div>
+      <div class="zones-list">
+        {{if .Zones}}
+          {{range .Zones}}
+          <div class="zone-item">
+            <div class="zone-swatch" style="background:var(--zone-{{.TypeCode}},#888)"></div>
+            <div>
+              <div class="zone-name">{{.TypeCode}}</div>
+              <div class="zone-type">{{.TotalRecords}} <span data-de>Zone(n)</span><span data-en>zone(s)</span></div>
+              {{range .Areas}}
+                {{if index . "name"}}<div class="zone-type" style="margin-top:2px">→ {{index . "name"}}</div>{{end}}
+              {{end}}
+            </div>
+          </div>
+          {{end}}
+        {{else}}
+          <div class="no-zones">
+            <div style="font-size:1.4rem;margin-bottom:.4rem">✅</div>
+            <span data-de>Keine bekannten Zonen</span>
+            <span data-en>No known zones</span>
+          </div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+
+  {{/* ── Detail tables ── */}}
+  <div class="detail-grid">
+
+    <div class="detail-card">
+      <div class="detail-title" data-de>Wind nach Höhe</div>
+      <div class="detail-title" data-en>Wind by Altitude</div>
+      {{range $a.WindSpeed}}
+      <div class="detail-row">
+        <span class="detail-key">{{.Key}} AGL</span>
+        <span class="detail-val {{if .OK}}ok{{else}}warn{{end}}">{{printf "%.1f" .Value}} m/s</span>
+      </div>
+      {{end}}
+      <div class="detail-row" style="border-top:1px solid var(--border)">
+        <span class="detail-key" data-de>Böen</span><span class="detail-key" data-en>Gusts</span>
+        <span class="detail-val {{if $gust.OK}}ok{{else}}warn{{end}}">{{printf "%.1f" $gust.Value}} m/s</span>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-title" data-de>Temperatur nach Höhe</div>
+      <div class="detail-title" data-en>Temperature by Altitude</div>
+      {{range $a.Temperature}}
+      <div class="detail-row">
+        <span class="detail-key">{{.Key}} AGL</span>
+        <span class="detail-val {{if .OK}}ok{{else}}warn{{end}}">{{printf "%.1f" .Value}} °C</span>
+      </div>
+      {{end}}
+      <div class="detail-row" style="border-top:1px solid var(--border)">
+        <span class="detail-key" data-de>Taupunkt</span><span class="detail-key" data-en>Dew Point</span>
+        <span class="detail-val {{if $a.DewPointOK}}ok{{else}}warn{{end}}">{{printf "%.1f" $a.DewPoint}} °C</span>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-title" data-de>Weitere Daten</div>
+      <div class="detail-title" data-en>Additional Data</div>
+      <div class="detail-row">
+        <span class="detail-key" data-de>Regen</span><span class="detail-key" data-en>Rain</span>
+        <span class="detail-val">{{printf "%.2f" $a.RainMM}} mm</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-key" data-de>Schnee</span><span class="detail-key" data-en>Snow</span>
+        <span class="detail-val">{{printf "%.2f" $a.SnowCM}} cm</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-key" data-de>Bewölkung</span><span class="detail-key" data-en>Cloud Cover</span>
+        <span class="detail-val">{{printf "%.0f" $a.CloudCover}}%</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-key">Kp-Index</span>
+        <span class="detail-val {{if $a.KpOK}}ok{{else}}warn{{end}}">{{printf "%.1f" $a.KpIndex}}</span>
+      </div>
+    </div>
+
+  </div>
+
+</div>{{/* .dashboard */}}
+{{end}}{{/* else error */}}
+
+<script>
+{{if not .Error}}
+(function() {
+  var WMS_BASE  = 'https://uas-betrieb.de/geoservices/dipul/wms';
+  var WMS_OWS   = 'https://uas-betrieb.de/geoservices/dipul/ows';
+  var WMS_LAYERS = [
+    { layer: 'dipul:bahnanlagen',                     de: 'Bahnanlagen',                       en: 'Railway Facilities' },
+    { layer: 'dipul:behoerden',                       de: 'Behörden',                          en: 'Authorities' },
+    { layer: 'dipul:binnenwasserstrassen',            de: 'Binnenwasserstraßen',               en: 'Inland Waterways' },
+    { layer: 'dipul:bundesautobahnen',                de: 'Bundesautobahnen',                  en: 'Federal Motorways' },
+    { layer: 'dipul:bundesstrassen',                  de: 'Bundesstraßen',                     en: 'Federal Roads' },
+    { layer: 'dipul:diplomatische_vertretungen',      de: 'Diplomatische Vertretungen',        en: 'Diplomatic Representations' },
+    { layer: 'dipul:ffh-gebiete',                     de: 'FFH-Gebiete',                       en: 'FFH Areas' },
+    { layer: 'dipul:flugbeschraenkungsgebiete',       de: 'Flugbeschränkungsgebiete',          en: 'Flight Restriction Areas' },
+    { layer: 'dipul:flughaefen',                      de: 'Flughäfen',                         en: 'Airports' },
+    { layer: 'dipul:flugplaetze',                     de: 'Flugplätze',                        en: 'Airfields' },
+    { layer: 'dipul:freibaeder',                      de: 'Freibäder',                         en: 'Open-air Pools' },
+    { layer: 'dipul:industrieanlagen',                de: 'Industrieanlagen',                  en: 'Industrial Facilities' },
+    { layer: 'dipul:internationale_organisationen',   de: 'Internationale Organisationen',     en: 'International Organizations' },
+    { layer: 'dipul:justizvollzugsanstalten',         de: 'Justizvollzugsanstalten',           en: 'Prisons' },
+    { layer: 'dipul:kontrollzonen',                   de: 'Kontrollzonen',                     en: 'Control Zones' },
+    { layer: 'dipul:kraftwerke',                      de: 'Kraftwerke',                        en: 'Power Plants' },
+    { layer: 'dipul:krankenhaeuser',                  de: 'Krankenhäuser',                     en: 'Hospitals' },
+    { layer: 'dipul:labore',                          de: 'Labore',                            en: 'Laboratories' },
+    { layer: 'dipul:militaerische_anlagen',           de: 'Militärische Anlagen',              en: 'Military Facilities' },
+    { layer: 'dipul:modellflugplaetze',               de: 'Modellflugplätze',                  en: 'Model Airfields' },
+    { layer: 'dipul:nationalparks',                   de: 'Nationalparks',                     en: 'National Parks' },
+    { layer: 'dipul:naturschutzgebiete',              de: 'Naturschutzgebiete',                en: 'Nature Reserves' },
+    { layer: 'dipul:polizei',                         de: 'Polizei',                           en: 'Police' },
+    { layer: 'dipul:schifffahrtsanlagen',             de: 'Schifffahrtsanlagen',               en: 'Shipping Facilities' },
+    { layer: 'dipul:seewasserstrassen',               de: 'Seewasserstraßen',                  en: 'Sea Waterways' },
+    { layer: 'dipul:sicherheitsbehoerden',            de: 'Sicherheitsbehörden',               en: 'Security Authorities' },
+    { layer: 'dipul:stromleitungen',                  de: 'Stromleitungen',                    en: 'Power Lines' },
+    { layer: 'dipul:temporaere_betriebseinschraenkungen', de: 'Temporäre Einschränkungen',     en: 'Temporary Restrictions' },
+    { layer: 'dipul:umspannwerke',                    de: 'Umspannwerke',                      en: 'Transformer Stations' },
+    { layer: 'dipul:vogelschutzgebiete',              de: 'Vogelschutzgebiete',                en: 'Bird Protection Areas' },
+    { layer: 'dipul:windkraftanlagen',                de: 'Windkraftanlagen',                  en: 'Wind Turbines' },
+    { layer: 'dipul:wohngrundstuecke',                de: 'Wohngrundstücke',                   en: 'Residential Properties' },
+  ];
+
+  // Zone colour palette for API-sourced GeoJSON overlays
+  var ZONE_COLORS = {
+    'CTR': '#ff9500', 'TMA': '#ffcc00', 'ATZ': '#ff9500',
+    'ED-R': '#ff4757', 'ED-D': '#ff4757', 'ED-P': '#ff4757', 'ED-LR': '#ffa502',
+    'NATIONAL_PARK': '#2ed573', 'NSG': '#2ed573', 'NATURA': '#2ed573', 'BIOSPHERE': '#2ed573',
+    'INDUSTRIAL': '#8888ff', 'PRISON': '#a55eea', 'MILITARY': '#ff6b81',
+    '_default': '#8888ff'
+  };
+
+  // ── Init map — zoom 17 to match original ─────────────────────────────────
+  var lat = {{.Lat}};
+  var lon = {{.Lon}};
+  var map = L.map('map').setView([lat, lon], 17);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+
+  // ── DiPUL WMS overlay (all 32 layers) ────────────────────────────────────
+  L.tileLayer.wms(WMS_BASE, {
+    layers: WMS_LAYERS.map(function(l) { return l.layer; }).join(','),
+    format: 'image/png',
+    transparent: true,
+    opacity: 0.75,
+    attribution: '© DiPUL / DFS'
+  }).addTo(map);
+
+  // ── Location marker + 100m radius ────────────────────────────────────────
+  var pinIcon = L.divIcon({
+    html: '<div style="font-size:1.5rem;line-height:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,.7))">📍</div>',
+    iconSize: [28,28], iconAnchor: [14,28], className: ''
+  });
+  L.marker([lat, lon], {icon: pinIcon})
+    .addTo(map)
+    .bindPopup('<strong>{{.Address}}</strong>')
+    .openPopup();
+
+  L.circle([lat, lon], {
+    radius: 100, color: '#00d4ff', fillColor: '#00d4ff',
+    fillOpacity: 0.08, weight: 2, dashArray: '5 5'
+  }).addTo(map);
+
+  // ── GeoJSON overlays for specifically affected zones ──────────────────────
+  var zonesData = {{.ZonesGeoJSON}};
+  var zoneLayerGroup = L.layerGroup().addTo(map);
+
+  if (zonesData && zonesData.length) {
+    zonesData.forEach(function(zone) {
+      var color = ZONE_COLORS[zone.typeCode] || ZONE_COLORS['_default'];
+      (zone.affectedAreas || []).forEach(function(area) {
+        if (!area.geometry) return;
+        try {
+          L.geoJSON({type: 'Feature', geometry: area.geometry, properties: area}, {
+            style: function() {
+              return {color: color, fillColor: color, fillOpacity: 0.2, weight: 2.5, dashArray: '6 4', opacity: 0.9};
+            },
+            onEachFeature: function(feature, layer) {
+              var p = feature.properties || {};
+              var name  = p.name || p.designator || zone.typeCode;
+              var lower = p.lowerLimit || p.lowerLimitAltitude || '';
+              var upper = p.upperLimit || '';
+              var html  = '<strong>' + name + '</strong><br><em>' + zone.typeCode + '</em>';
+              if (lower || upper) html += '<br>' + lower + (upper ? ' – ' + upper : '');
+              layer.bindPopup(html);
+            }
+          }).addTo(zoneLayerGroup);
+        } catch(e) {}
+      });
+    });
+  }
+
+  // ── Legend Leaflet control with real WMS GetLegendGraphic icons ───────────
+  var LegendControl = L.Control.extend({
+    options: {position: 'bottomright'},
+    onAdd: function() {
+      var div = L.DomUtil.create('div', 'legend-ctrl');
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.disableScrollPropagation(div);
+
+      var lang = localStorage.getItem('lang') || 'de';
+      var open = false; // collapsed by default
+
+      function render() {
+        div.innerHTML = '';
+        var hdr = L.DomUtil.create('div', 'legend-header', div);
+        hdr.innerHTML = (lang === 'de' ? 'Legende' : 'Legend') +
+                        ' <span>' + (open ? '▾' : '▸') + '</span>';
+        hdr.onclick = function() { open = !open; render(); };
+
+        if (open) {
+          var body = L.DomUtil.create('div', 'legend-body', div);
+          body.style.maxHeight = '320px';
+          body.style.overflowY = 'auto';
+          WMS_LAYERS.forEach(function(d) {
+            var row = L.DomUtil.create('div', 'legend-row', body);
+            var img = L.DomUtil.create('img', '', row);
+            img.src = WMS_OWS + '?service=WMS&version=1.3.0&request=GetLegendGraphic' +
+                      '&layer=' + d.layer + '&format=image/png';
+            img.width = 20; img.height = 20;
+            img.style.cssText = 'flex-shrink:0;object-fit:contain';
+            var txt = L.DomUtil.create('span', '', row);
+            txt.textContent = lang === 'de' ? d.de : d.en;
+          });
+        }
+      }
+
+      render();
+
+      // Re-render legend on language or theme change
+      var _origLang = window.setLang;
+      window.setLang = function(l) { _origLang(l); lang = l; render(); };
+      var _origTheme = window.toggleTheme;
+      window.toggleTheme = function() { _origTheme(); render(); };
+
+      return div;
+    }
+  });
+  new LegendControl().addTo(map);
+
+})();
+{{end}}
+</script>
+
+{{template "uiscript" .}}
+{{template "footer" .}}

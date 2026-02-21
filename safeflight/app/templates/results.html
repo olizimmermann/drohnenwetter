@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone Weather Result</title>
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" sizes="57x57" href="/static/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/static/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/static/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/static/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/static/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/static/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/static/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/static/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-icon-180x180.png">
+
+    <!-- Android and Favicon Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/static/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+
+    <!-- Manifest -->
+    <link rel="manifest" href="/static/manifest.json">
+
+    <!-- Microsoft Meta Tags -->
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="/static/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <style>
+        /* General Body Styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #007BFF, #f4f4f9);
+            color: #333;
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 900px;
+            height: 90%;
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Warnings Section */
+        .warnings {
+            list-style-type: disc; /* Bulleted list for readability */
+            padding-left: 20px;
+            max-height: 150px; /* Limit height for long warnings */
+            overflow-y: auto; /* Add vertical scrolling if necessary */
+            margin: 0 0 10px;
+            background-color: #f9f9f9; /* Slight background for separation */
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .warnings li {
+            margin-bottom: 5px;
+            overflow-wrap: break-word; /* Break long words gracefully */
+            word-wrap: break-word;
+            font-size: 0.95rem; /* Slightly smaller for large text */
+            line-height: 1.4;
+        }
+        /* Critical Zones */
+        .critical-zone {
+            margin-bottom: 20px;
+        }
+
+        .zone-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px; /* Limit height for long lists */
+            overflow-y: auto; /* Add scrolling if necessary */
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .zone-item {
+            margin-bottom: 10px;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .zone-item:last-child {
+            border-bottom: none;
+        }
+
+        .zone-name {
+            font-size: 0.95rem;
+            font-weight: bold;
+            overflow-wrap: break-word; /* Break long words */
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .zone-details {
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+
+        h1 {
+            font-size: 1.8rem;
+            color: #007BFF;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            color: #555;
+            margin: 20px 0 10px;
+        }
+
+        p {
+            font-size: 1rem;
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .key-value {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 5px 0;
+            border-bottom: 1px solid #ddd;
+            gap: 10px;
+        }
+
+        .key-value span {
+            font-size: 1rem;
+            word-wrap: break-word;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        li {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .highlight-green {
+            color: green;
+        }
+
+        .highlight-red {
+            color: red;
+        }
+
+        a {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px 15px;
+            font-size: 1rem;
+            color: #fff;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+
+        a:hover {
+            background-color: #0056b3;
+        }
+
+        a.button {
+            display: inline-block;
+            padding: 10px 15px;
+            font-size: 1rem;
+            color: #fff;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+            text-align: center;
+        }
+
+        a.email {
+            background-color: #ffffff;
+            color: #0056b3;
+            text-decoration: none;
+        }
+
+        #map {
+            height: 600px; /* Default height for larger screens */
+            width: 100%; /* Ensure full width */
+            max-height: 90vh; /* Limit maximum height to 90% of the viewport */
+        }
+
+        /* Mobile-specific adjustments */
+        @media (max-width: 768px) {
+            #map {
+                height: 50vh; /* Use half the viewport height for mobile */
+            }
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #aaa;
+            padding: 10px 0;
+            background-color: #ffffff;
+            border-top: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <div class="container">
+            <h1>Drone Weather - Ergebnis</h1>
+
+            {% if error %}
+                <p style="color: red; text-align: center;">{{ error }}</p>
+            {% else %}
+                <!-- General Information -->
+                <h2>Allgemeine Informationen</h2>
+                <div class="key-value">
+                    <span><strong>Adresse:</strong></span>
+                    <span>{{ address }}</span>
+                </div>
+
+                <!-- Weather Overview -->
+                <h2>Wetter Vorhersage</h2>
+                <div class="key-value">
+                    <span><strong>Wetter Flugfreigabe:</strong></span>
+                    <span class="{{ 'highlight-green' if forecast.flyable else 'highlight-red' }}">
+                        {{ 'OK' if forecast.flyable else 'WARNUNG' }}
+                    </span>
+                </div>
+                <div class="key-value">
+                    <span><strong>Regen:</strong></span>
+                    <span>{{ forecast.rainPrecipitation }} mm</span>
+                </div>
+                <div class="key-value">
+                    <span><strong>Schnee:</strong></span>
+                    <span>{{ forecast.snowPrecipitation }} mm</span>
+                </div>
+                <div class="key-value">
+                    <span><strong>Kp Index:</strong></span>
+                    <span class="{{ 'highlight-green' if forecast.kp_index.flyable else 'highlight-red' }}">
+                        {{ forecast.kp_index.value }}
+                    </span>
+                </div>
+
+                <!-- Temperature Details -->
+                <h2>Temperaturen</h2>
+                <ul>
+                    {% for height, temp in forecast.temperature.items() %}
+                    <li>
+                        <span>{{ height }}</span>
+                        <span class="{{ 'highlight-green' if temp.flyable else 'highlight-red' }}">{{ temp.value }}°C</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div class="key-value">
+                    <span>Taupunkt:</span>
+                    <span class="{{ 'highlight-green' if forecast.dew_point.flyable else 'highlight-red' }}">
+                        {{ forecast.dew_point.value }}°C
+                    </span>
+                </div>
+
+                <!-- Wind Details -->
+                <h2>Windgeschwindigkeiten</h2>
+                <ul>
+                    {% for height, speed in forecast.windSpeed.items() %}
+                    <li>
+                        <span>{{ height }}</span>
+                        <span class="{{ 'highlight-green' if speed.flyable else 'highlight-red' }}">{{ speed.value }} m/s</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div class="key-value">
+                    <span><strong>Böenwindgeschwindigkeit:</strong></span>
+                    <span class="{{ 'highlight-green' if forecast.windSpeedGust.flyable else 'highlight-red' }}">
+                        {{ forecast.windSpeedGust.value }} m/s
+                    </span>
+                </div>
+
+                <!-- Warnings -->
+                <h2>Warnungen</h2>
+                <div>
+                    <h3>Temperaturwarnungen:</h3>
+                    {% if forecast.temperature_warning %}
+                        <ul class="warnings">
+                            {% for warning in forecast.temperature_warning %}
+                                <li>{{ warning }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>Keine Temperaturwarnungen.</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <h3>Windwarnungen:</h3>
+                    {% if forecast.wind_warning %}
+                        <ul class="warnings">
+                            {% for warning in forecast.wind_warning %}
+                                <li>{{ warning }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>Keine Windwarnungen.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Critical Zones -->
+                <h2>Kritische Flugzonen</h2>
+                {% for key, value in affected_areas.items() %}
+                <div class="critical-zone">
+                    <h3 style="color: #ff0022;">{{ key }}</h3>
+                    <p><strong>Anzahl Einträge:</strong> {{ value.totalRecords }}</p>
+                    <ul class="zone-list">
+                        {% for area in value.affectedAreas %}
+                        <li class="zone-item">
+                            <div class="zone-name" title="{{ area.name }}">{{ area.name }}</div>
+                            <div class="zone-details">
+                                <strong>Untergrenze:</strong> {{ area.lowerLimitAltitude }} {{ area.lowerLimitUnit }} ({{ area.lowerLimitReference }})
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endfor %}
+                <div id="map" style="height: 600px; position: relative;"></div>
+
+            <div id="legend-container" style="position: fixed; bottom: 20px; right: 20px; background: rgba(255, 255, 255, 0.9); padding: 10px; border: 1px solid #ccc; border-radius: 5px; z-index: 1000; font-size: 0.9rem; max-width: 250px; visibility: hidden;"></div>
+                <button id="toggle-legend" style="background: #007BFF; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 0.9rem; cursor: pointer; width: 100%;">
+                    Legende anzeigen
+                </button>
+                <div id="legend" style="margin-top: 10px; display: none;">
+                    <strong>Legende</strong>
+                    <ul id="legend-items" style="list-style-type: none; padding: 0; margin: 10px 0 0;"></ul>
+                </div>
+            </div>
+            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+            <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var map = L.map('map').setView([{{ lat }}, {{ lon }}], 17);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            var wmsLayer = L.tileLayer.wms("https://uas-betrieb.de/geoservices/dipul/wms", {
+                layers: `
+                dipul:bahnanlagen,
+                dipul:behoerden,
+                dipul:binnenwasserstrassen,
+                dipul:bundesautobahnen,
+                dipul:bundesstrassen,
+                dipul:diplomatische_vertretungen,
+                dipul:ffh-gebiete,
+                dipul:flugbeschraenkungsgebiete,
+                dipul:flughaefen,
+                dipul:flugplaetze,
+                dipul:freibaeder,
+                dipul:industrieanlagen,
+                dipul:internationale_organisationen,
+                dipul:justizvollzugsanstalten,
+                dipul:kontrollzonen,
+                dipul:kraftwerke,
+                dipul:krankenhaeuser,
+                dipul:labore,
+                dipul:militaerische_anlagen,
+                dipul:modellflugplaetze,
+                dipul:nationalparks,
+                dipul:naturschutzgebiete,
+                dipul:polizei,
+                dipul:schifffahrtsanlagen,
+                dipul:seewasserstrassen,
+                dipul:sicherheitsbehoerden,
+                dipul:stromleitungen,
+                dipul:temporaere_betriebseinschraenkungen,
+                dipul:umspannwerke,
+                dipul:vogelschutzgebiete,
+                dipul:windkraftanlagen,
+                dipul:wohngrundstuecke
+                `,
+                format: 'image/png',
+                transparent: true,
+                attribution: "© DiPUL Layers"
+            }).addTo(map);
+
+            var legendItems = [
+                { name: 'Bahnanlagen', layer: 'dipul:bahnanlagen' },
+                { name: 'Behörden', layer: 'dipul:behoerden' },
+                { name: 'Binnenwasserstraßen', layer: 'dipul:binnenwasserstrassen' },
+                { name: 'Bundesautobahnen', layer: 'dipul:bundesautobahnen' },
+                { name: 'Bundesstraßen', layer: 'dipul:bundesstrassen' },
+                { name: 'Diplomatische Vertretungen', layer: 'dipul:diplomatische_vertretungen' },
+                { name: 'FFH-Gebiete', layer: 'dipul:ffh-gebiete' },
+                { name: 'Flugbeschränkungsgebiete', layer: 'dipul:flugbeschraenkungsgebiete' },
+                { name: 'Flughäfen', layer: 'dipul:flughaefen' },
+                { name: 'Flugplätze', layer: 'dipul:flugplaetze' },
+                { name: 'Freibäder', layer: 'dipul:freibaeder' },
+                { name: 'Industrieanlagen', layer: 'dipul:industrieanlagen' },
+                { name: 'Internationale Organisationen', layer: 'dipul:internationale_organisationen' },
+                { name: 'Justizvollzugsanstalten', layer: 'dipul:justizvollzugsanstalten' },
+                { name: 'Kontrollzonen', layer: 'dipul:kontrollzonen' },
+                { name: 'Kraftwerke', layer: 'dipul:kraftwerke' },
+                { name: 'Krankenhäuser', layer: 'dipul:krankenhaeuser' },
+                { name: 'Labore', layer: 'dipul:labore' },
+                { name: 'Militärische Anlagen', layer: 'dipul:militaerische_anlagen' },
+                { name: 'Modellflugplätze', layer: 'dipul:modellflugplaetze' },
+                { name: 'Nationalparks', layer: 'dipul:nationalparks' },
+                { name: 'Naturschutzgebiete', layer: 'dipul:naturschutzgebiete' },
+                { name: 'Polizei', layer: 'dipul:polizei' },
+                { name: 'Schifffahrtsanlagen', layer: 'dipul:schifffahrtsanlagen' },
+                { name: 'Seewasserstraßen', layer: 'dipul:seewasserstrassen' },
+                { name: 'Sicherheitsbehörden', layer: 'dipul:sicherheitsbehoerden' },
+                { name: 'Stromleitungen', layer: 'dipul:stromleitungen' },
+                { name: 'Temporäre Betriebseinschränkungen', layer: 'dipul:temporaere_betriebseinschraenkungen' },
+                { name: 'Umspannwerke', layer: 'dipul:umspannwerke' },
+                { name: 'Vogelschutzgebiete', layer: 'dipul:vogelschutzgebiete' },
+                { name: 'Windkraftanlagen', layer: 'dipul:windkraftanlagen' },
+                { name: 'Wohngrundstücke', layer: 'dipul:wohngrundstuecke' }
+            ];
+
+            var legendContainer = document.getElementById('legend-items');
+            legendItems.forEach(function (item) {
+                var legendEntry = document.createElement('li');
+                var legendIcon = document.createElement('img');
+                var legendText = document.createElement('span');
+
+                legendIcon.src = `https://uas-betrieb.de/geoservices/dipul/ows?service=WMS&version=1.3.0&request=GetLegendGraphic&layer=${item.layer}&format=image/png`;
+                legendIcon.alt = item.name;
+                legendIcon.style.width = '20px';
+                legendIcon.style.height = '20px';
+                legendIcon.style.marginRight = '10px';
+
+                legendText.textContent = item.name;
+
+                legendEntry.appendChild(legendIcon);
+                legendEntry.appendChild(legendText);
+                legendContainer.appendChild(legendEntry);
+            });
+
+            var legend = document.getElementById('legend');
+            var toggleButton = document.getElementById('toggle-legend');
+            toggleButton.addEventListener('click', function () {
+                if (legend.style.display === 'none') {
+                    legend.style.display = 'block';
+                    toggleButton.textContent = 'Legende ausblenden';
+                } else {
+                    legend.style.display = 'none';
+                    toggleButton.textContent = 'Legende anzeigen';
+                }
+            });
+        });
+    </script>
+
+            {% endif %}
+
+        </div>
+        <!-- Back Button -->
+        <a class="button" href="/">Zurück</a>
+    </div>
+    &nbsp;
+    <footer>
+        
+        <p>&copy; 2025 Drone Weather. Powered by accurate geophysical data. 
+            <a class="email" href="mailto:drone-weather@oz-security.io">drone-weather@oz-security.io</a>v1.3</p>
+            <p>Map Data by OpenStreetMap contributors, HERE and DiPUL</p>
+            <p>Weather by Deutscher Wetterdienst (DWD), Openweathermap</p>
+            <p>KP Index by GFZ Helmholtz-Zentrum für Geoforschung</p>
+    </footer>
+</body>
+</html>

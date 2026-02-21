@@ -1,0 +1,30 @@
+services:
+  safeflight-app:
+    build:
+      context: ./go
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - PORT=8080
+      - TEMPLATE_DIR=/app/templates
+      - STATIC_DIR=/app/static
+    networks:
+      - safeflight-net
+    deploy:
+      replicas: 3
+    restart: always
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+    ports:
+      - "80:80"
+    depends_on:
+      - safeflight-app
+    networks:
+      - safeflight-net
+    restart: always
+networks:
+  safeflight-net:
+    driver: bridge

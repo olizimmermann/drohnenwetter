@@ -133,6 +133,12 @@
     background: rgba(255,71,87,.06); border: 1px solid rgba(255,71,87,.2);
     border-radius: 8px; font-size: 13px; color: var(--warn); margin-bottom: .4rem;
   }
+  .data-warning-item {
+    display: flex; align-items: center; gap: .5rem;
+    padding: .55rem .9rem;
+    background: rgba(255,165,0,.06); border: 1px solid rgba(255,165,0,.25);
+    border-radius: 8px; font-size: 13px; color: var(--amber); margin-bottom: .4rem;
+  }
 
   /* ── Error state ── */
   .error-card { max-width: 480px; margin: 4rem auto; text-align: center; }
@@ -216,7 +222,14 @@
     </div>
   </div>
 
-  {{/* ── Warnings ── */}}
+  {{/* ── Data availability notices ── */}}
+  {{if .DataWarnings}}
+  <div class="warnings-section">
+    {{range .DataWarnings}}<div class="data-warning-item">⚠️ {{.}}</div>{{end}}
+  </div>
+  {{end}}
+
+  {{/* ── Safety warnings ── */}}
   {{if or $a.WindWarnings $a.TempWarnings $a.DewPointWarning $a.KpWarning}}
   <div class="warnings-section">
     {{range $a.WindWarnings}}<div class="warning-item">💨 {{.}}</div>{{end}}

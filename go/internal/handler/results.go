@@ -28,6 +28,7 @@ type resultsData struct {
 	Assessment   *assessment.Assessment
 	Zones        []api.AffectedArea
 	ZonesGeoJSON template.JS // safe JS — injected directly into <script>
+	DataWarnings []string    // non-fatal service degradation notices
 	Error        string
 }
 
@@ -99,11 +100,19 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if fetched.utm == nil {
-		h.renderError(w, "Wetterdaten konnten nicht abgerufen werden.")
+		h.renderError(w, "Wetterdaten (UTM/DFS) konnten nicht abgerufen werden. Bitte später erneut versuchen.")
 		return
 	}
-	if fetched.ow == nil {
-		fetched.ow = &api.OWResponse{}
+
+	var dataWarnings []string
+	if fetched.errs[1] != nil {
+		dataWarnings = append(dataWarnings, "Taupunkt-Daten nicht verfügbar (OpenWeatherMap). Nebelgefahr kann nicht berechnet werden.")
+	}
+	if fetched.errs[2] != nil {
+		dataWarnings = append(dataWarnings, "Kp-Index nicht verfügbar (GFZ Potsdam). GPS-Zuverlässigkeit kann nicht bewertet werden.")
+	}
+	if fetched.errs[3] != nil {
+		dataWarnings = append(dataWarnings, "Luftraumdaten nicht verfügbar (DiPUL). Bitte Luftraum manuell prüfen.")
 	}
 
 	a := assessment.Assess(fetched.utm, fetched.ow, fetched.kp)
@@ -121,6 +130,7 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Assessment:   a,
 		Zones:        fetched.zones,
 		ZonesGeoJSON: template.JS(zonesJSON),
+		DataWarnings: dataWarnings,
 	}
 
 	if err := h.tmpl.ExecuteTemplate(w, "results.html", data); err != nil {

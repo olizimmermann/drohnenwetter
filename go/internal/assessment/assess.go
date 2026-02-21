@@ -48,10 +48,12 @@ type Assessment struct {
 func Assess(utm *api.UTMResponse, ow *api.OWResponse, kp float64) *Assessment {
 	a := &Assessment{
 		Flyable:    true,
-		DewPoint:   ow.Current.DewPoint,
 		DewPointOK: true,
 		KpIndex:    kp,
 		KpOK:       true,
+	}
+	if ow != nil {
+		a.DewPoint = ow.Current.DewPoint
 	}
 
 	if len(utm.Positions) == 0 || len(utm.Positions[0].Forecasts) == 0 {
@@ -65,7 +67,7 @@ func Assess(utm *api.UTMResponse, ow *api.OWResponse, kp float64) *Assessment {
 	for _, t := range fc.Temperature {
 		key := fmt.Sprintf("%gm", t.Height.Value)
 		ok := t.Value <= 50 && t.Value >= -20
-		dewWarn := math.Abs(t.Value-ow.Current.DewPoint) < 2 && t.Value < 7
+		dewWarn := ow != nil && math.Abs(t.Value-ow.Current.DewPoint) < 2 && t.Value < 7
 		a.Temperature = append(a.Temperature, AltEntry{
 			Key:    key,
 			Height: t.Height.Value,

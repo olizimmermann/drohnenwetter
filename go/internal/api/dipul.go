@@ -154,7 +154,7 @@ func fetchZoneDetail(typeCode string, lat, lon float64, token string) (*Affected
 }
 
 func isUnauthorized(err error) bool {
-	return err != nil && strings.HasPrefix(err.Error(), "HTTP 401 ")
+	return err != nil && strings.Contains(err.Error(), "HTTP 401 ")
 }
 
 func invalidateDipulToken() {

@@ -170,3 +170,13 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 log.txt
+
+# Go build artifacts
+go/drone-weather
+go/*.exe
+go/vendor/
+
+# Editor / OS
+.DS_Store
+.idea/
+*.swp

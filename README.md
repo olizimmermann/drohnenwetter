@@ -149,6 +149,8 @@ Designed to sit behind Cloudflare (real client IP extracted from `CF-Connecting-
 
 Domains in use: `mt30.drone-weather.com`, `m30t.drone-weather.com`
 
+> **Security note:** The app itself does not terminate TLS. Run it exclusively behind Nginx + Cloudflare (or another TLS-terminating proxy). Do **not** expose the Go app directly on port 8080 to the public internet — API keys are forwarded server-side but the address form data travels in plain HTTP between client and proxy if TLS is not enforced at the edge.
+
 ---
 
 ## License

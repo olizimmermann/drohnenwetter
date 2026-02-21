@@ -76,7 +76,8 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(address) > 100 {
-		address = address[:100]
+		h.renderError(w, "Adresse zu lang (max. 100 Zeichen).")
+		return
 	}
 
 	geo, err := api.Geocode(address, h.hereAPIKey)

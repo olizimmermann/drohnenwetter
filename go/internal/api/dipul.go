@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -152,7 +153,18 @@ func fetchZoneDetail(typeCode string, lat, lon float64, token string) (*Affected
 	}, nil
 }
 
+func isUnauthorized(err error) bool {
+	return err != nil && strings.HasPrefix(err.Error(), "HTTP 401 ")
+}
+
+func invalidateDipulToken() {
+	dipulToken.mu.Lock()
+	dipulToken.token = ""
+	dipulToken.mu.Unlock()
+}
+
 // FetchAllZoneDetails fetches affected area codes then parallel-fetches each zone's detail.
+// On a 401 it invalidates the cached token and retries once with a fresh one.
 func FetchAllZoneDetails(lat, lon float64) ([]AffectedArea, error) {
 	token, err := getToken()
 	if err != nil {
@@ -161,7 +173,16 @@ func FetchAllZoneDetails(lat, lon float64) ([]AffectedArea, error) {
 
 	codes, err := fetchAffectedAreaCodes(lat, lon, token)
 	if err != nil {
-		return nil, err
+		if isUnauthorized(err) {
+			invalidateDipulToken()
+			if token, err = getToken(); err != nil {
+				return nil, err
+			}
+			codes, err = fetchAffectedAreaCodes(lat, lon, token)
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 	if len(codes) == 0 {
 		return nil, nil
@@ -184,7 +205,13 @@ func FetchAllZoneDetails(lat, lon float64) ([]AffectedArea, error) {
 	var areas []AffectedArea
 	for range codes {
 		r := <-ch
-		if r.err == nil && r.area != nil && len(r.area.Areas) > 0 {
+		if r.err != nil {
+			if isUnauthorized(r.err) {
+				invalidateDipulToken() // next request will fetch a fresh token
+			}
+			continue
+		}
+		if r.area != nil && len(r.area.Areas) > 0 {
 			areas = append(areas, *r.area)
 		}
 	}

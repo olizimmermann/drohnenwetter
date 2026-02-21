@@ -13,7 +13,8 @@ type AltEntry struct {
 	Key    string  // display label e.g. "50m"
 	Height float64 // numeric metres, used for sorting
 	Value  float64
-	OK     bool
+	OK     bool // hard limit not exceeded
+	Warn   bool // soft warning (dew-point proximity, wind approaching limit)
 }
 
 type SpeedEntry struct {
@@ -64,18 +65,20 @@ func Assess(utm *api.UTMResponse, ow *api.OWResponse, kp float64) *Assessment {
 	for _, t := range fc.Temperature {
 		key := fmt.Sprintf("%gm", t.Height.Value)
 		ok := t.Value <= 50 && t.Value >= -20
+		dewWarn := math.Abs(t.Value-ow.Current.DewPoint) < 2 && t.Value < 7
 		a.Temperature = append(a.Temperature, AltEntry{
 			Key:    key,
 			Height: t.Height.Value,
 			Value:  round2(t.Value),
 			OK:     ok,
+			Warn:   dewWarn,
 		})
 		if !ok {
 			a.Flyable = false
 			a.TempWarnings = append(a.TempWarnings, fmt.Sprintf("%.1f°C [%s]", t.Value, key))
 		}
-		// Dew-point fog risk: diff < 2°C AND temp < 7°C
-		if a.DewPointOK && math.Abs(t.Value-ow.Current.DewPoint) < 2 && t.Value < 7 {
+		// Dew-point fog risk: record first affected altitude in the global warning
+		if dewWarn && a.DewPointOK {
 			a.DewPointOK = false
 			a.Flyable = false
 			a.DewPointWarning = fmt.Sprintf("Taupunkt %.1f°C nahe Temperatur %.1f°C [%s] – Nebelgefahr",
@@ -96,6 +99,7 @@ func Assess(utm *api.UTMResponse, ow *api.OWResponse, kp float64) *Assessment {
 			Height: w.Height.Value,
 			Value:  round2(speed),
 			OK:     ok,
+			Warn:   ok && speed > 8, // 8–12 m/s: approaching limit
 		})
 		if !ok {
 			a.Flyable = false

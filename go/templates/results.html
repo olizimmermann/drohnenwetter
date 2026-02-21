@@ -121,8 +121,9 @@
   .detail-row:last-child { border-bottom: none; }
   .detail-key { color: var(--muted); }
   .detail-val { font-weight: 600; }
-  .detail-val.ok   { color: var(--ok); }
-  .detail-val.warn { color: var(--warn); }
+  .detail-val.ok    { color: var(--ok); }
+  .detail-val.warn  { color: var(--warn); }
+  .detail-val.amber { color: var(--amber); }
 
   /* ── Warnings ── */
   .warnings-section { margin-bottom: 1.25rem; }
@@ -187,7 +188,7 @@
 
 <header class="topbar">
   <div class="topbar-left">
-    <a class="back-link" href="/">← Drone Weather</a>
+    <a class="back-link" href="/">← Start</a>
     <span class="location-label">📍 {{.Address}}</span>
   </div>
   <div class="controls">
@@ -332,7 +333,7 @@
       {{range $a.WindSpeed}}
       <div class="detail-row">
         <span class="detail-key">{{.Key}} AGL</span>
-        <span class="detail-val {{if .OK}}ok{{else}}warn{{end}}">{{printf "%.1f" .Value}} m/s</span>
+        <span class="detail-val {{if not .OK}}warn{{else if .Warn}}amber{{else}}ok{{end}}">{{printf "%.1f" .Value}} m/s</span>
       </div>
       {{end}}
       <div class="detail-row" style="border-top:1px solid var(--border)">
@@ -347,7 +348,7 @@
       {{range $a.Temperature}}
       <div class="detail-row">
         <span class="detail-key">{{.Key}} AGL</span>
-        <span class="detail-val {{if .OK}}ok{{else}}warn{{end}}">{{printf "%.1f" .Value}} °C</span>
+        <span class="detail-val {{if not .OK}}warn{{else if .Warn}}amber{{else}}ok{{end}}">{{printf "%.1f" .Value}} °C</span>
       </div>
       {{end}}
       <div class="detail-row" style="border-top:1px solid var(--border)">

@@ -84,7 +84,6 @@ drone-weather/
 │   └── go.sum
 ├── nginx/
 │   └── mt30.drone-weather.com.conf
-├── safeflight/                  # Original Python/FastAPI app (reference)
 ├── docker-compose.yml
 └── .env                         # API keys (not committed)
 ```

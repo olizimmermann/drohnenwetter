@@ -409,6 +409,21 @@
         <span class="detail-key">Kp-Index</span>
         <span class="detail-val {{if $a.KpOK}}ok{{else}}warn{{end}}">{{printf "%.1f" $a.KpIndex}}</span>
       </div>
+      <div class="detail-row">
+        <span class="detail-key" data-de>Wolkenuntergrenze (TAF)</span>
+        <span class="detail-key" data-en>Cloud Base (TAF)</span>
+        {{with .CloudBase}}
+          {{if .Available}}
+            <span class="detail-val {{if lt .CloudBaseFt 1400}}amber{{end}}" title="{{.AirportName}} ({{.ICAO}})">
+              {{.CloudBaseFt}}ft / {{printf "%.0f" .CloudBaseM}}m
+            </span>
+          {{else}}
+            <span class="detail-val" style="color:var(--muted)">N/A</span>
+          {{end}}
+        {{else}}
+          <span class="detail-val" style="color:var(--muted)">N/A</span>
+        {{end}}
+      </div>
     </div>
 
   </div>

@@ -10,6 +10,7 @@ type GeocodeResult struct {
 	Lat   float64
 	Lon   float64
 	Title string
+	City  string // from HERE address.city — used for METAR airport lookup
 }
 
 type hereResponse struct {
@@ -62,5 +63,6 @@ func Geocode(address, hereAPIKey string) (*GeocodeResult, error) {
 		Lat:   item.Position.Lat,
 		Lon:   item.Position.Lng,
 		Title: item.Title,
+		City:  item.Address.City,
 	}, nil
 }

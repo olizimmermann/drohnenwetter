@@ -28,6 +28,7 @@ type resultsData struct {
 	Assessment   *assessment.Assessment
 	Zones        []api.AffectedArea
 	ZonesGeoJSON template.JS // safe JS — injected directly into <script>
+	CloudBase    *api.CloudBaseResult
 	OWFailed    bool // OpenWeatherMap unavailable
 	KpFailed    bool // Kp-Index unavailable
 	DiPULFailed bool // DiPUL airspace data unavailable
@@ -36,18 +37,19 @@ type resultsData struct {
 }
 
 type allFetched struct {
-	utm   *api.UTMResponse
-	ow    *api.OWResponse
-	kp    float64
-	zones []api.AffectedArea
-	errs  [4]error
+	utm        *api.UTMResponse
+	ow         *api.OWResponse
+	kp         float64
+	zones      []api.AffectedArea
+	cloudBase  *api.CloudBaseResult
+	errs       [4]error
 }
 
-func (h *ResultsHandler) fetchAll(lat, lon float64) *allFetched {
+func (h *ResultsHandler) fetchAll(lat, lon float64, city string) *allFetched {
 	var wg sync.WaitGroup
 	out := &allFetched{}
 
-	wg.Add(4)
+	wg.Add(5)
 	go func() {
 		defer wg.Done()
 		out.utm, out.errs[0] = api.FetchUTMForecast(lat, lon)
@@ -63,6 +65,10 @@ func (h *ResultsHandler) fetchAll(lat, lon float64) *allFetched {
 	go func() {
 		defer wg.Done()
 		out.zones, out.errs[3] = api.FetchAllZoneDetails(lat, lon)
+	}()
+	go func() {
+		defer wg.Done()
+		out.cloudBase = api.FetchCloudBase(city) // never errors; check .Available
 	}()
 	wg.Wait()
 	return out
@@ -93,7 +99,7 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("[results] resolved %q → %.6f, %.6f", geo.Title, geo.Lat, geo.Lon)
 
-	fetched := h.fetchAll(geo.Lat, geo.Lon)
+	fetched := h.fetchAll(geo.Lat, geo.Lon, geo.City)
 
 	labels := []string{"UTM", "OpenWeather", "Kp-Index", "DiPUL"}
 	for i, e := range fetched.errs {
@@ -126,6 +132,7 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Assessment:   a,
 		Zones:        fetched.zones,
 		ZonesGeoJSON: template.JS(zonesJSON),
+		CloudBase:    fetched.cloudBase,
 		OWFailed:     owFailed,
 		KpFailed:     kpFailed,
 		DiPULFailed:  dipulFailed,

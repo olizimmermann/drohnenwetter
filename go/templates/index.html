@@ -1,6 +1,16 @@
 {{template "head" .}}
 
 <style>
+  body {
+    background-image: url('/static/drohnenwetter-dark.svg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+  html[data-theme="light"] body {
+    background-image: url('/static/drohnenwetter-light.svg');
+  }
+
   .page {
     min-height: calc(100vh - 60px); /* leave room for footer */
     display: flex;
@@ -8,11 +18,14 @@
     align-items: center;
     justify-content: center;
     padding: 1.25rem;
+    background: transparent;
   }
 
   .hero-card {
     width: 100%;
     max-width: 420px;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
   }
 
   .brand {

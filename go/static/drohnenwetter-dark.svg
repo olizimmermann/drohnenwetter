@@ -1,0 +1,224 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <!-- Base gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0d12"/>
+      <stop offset="50%" style="stop-color:#0d1520"/>
+      <stop offset="100%" style="stop-color:#060810"/>
+    </linearGradient>
+
+    <!-- Radial glow for focal point -->
+    <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#0ea5e9;stop-opacity:0.07"/>
+      <stop offset="100%" style="stop-color:#0a0d12;stop-opacity:0"/>
+    </radialGradient>
+
+    <radialGradient id="topRightGlow" cx="80%" cy="20%" r="40%">
+      <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:0.1"/>
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:0"/>
+    </radialGradient>
+
+    <radialGradient id="bottomLeftGlow" cx="15%" cy="75%" r="35%">
+      <stop offset="0%" style="stop-color:#0284c7;stop-opacity:0.08"/>
+      <stop offset="100%" style="stop-color:#0284c7;stop-opacity:0"/>
+    </radialGradient>
+
+    <!-- Noise filter -->
+    <filter id="noise" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" result="noiseOut"/>
+      <feColorMatrix type="saturate" values="0" result="grayNoise"/>
+      <feBlend in="SourceGraphic" in2="grayNoise" mode="overlay" result="blend"/>
+      <feComposite in="blend" in2="SourceGraphic" operator="in"/>
+    </filter>
+
+    <!-- Glow filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1920" height="1080" fill="url(#bgGrad)"/>
+
+  <!-- Ambient glows -->
+  <rect width="1920" height="1080" fill="url(#centerGlow)"/>
+  <rect width="1920" height="1080" fill="url(#topRightGlow)"/>
+  <rect width="1920" height="1080" fill="url(#bottomLeftGlow)"/>
+
+  <!-- === PERSPECTIVE GRID === -->
+  <g opacity="0.18" stroke="#06b6d4" stroke-width="0.5" fill="none">
+    <!-- Horizontal grid lines converging to horizon at ~540px y -->
+    <!-- These lines fan out from center horizon -->
+    <line x1="960" y1="540" x2="0" y2="200"/>
+    <line x1="960" y1="540" x2="0" y2="300"/>
+    <line x1="960" y1="540" x2="0" y2="400"/>
+    <line x1="960" y1="540" x2="0" y2="500"/>
+    <line x1="960" y1="540" x2="0" y2="600"/>
+    <line x1="960" y1="540" x2="0" y2="700"/>
+    <line x1="960" y1="540" x2="0" y2="800"/>
+    <line x1="960" y1="540" x2="0" y2="900"/>
+    <line x1="960" y1="540" x2="1920" y2="200"/>
+    <line x1="960" y1="540" x2="1920" y2="300"/>
+    <line x1="960" y1="540" x2="1920" y2="400"/>
+    <line x1="960" y1="540" x2="1920" y2="500"/>
+    <line x1="960" y1="540" x2="1920" y2="600"/>
+    <line x1="960" y1="540" x2="1920" y2="700"/>
+    <line x1="960" y1="540" x2="1920" y2="800"/>
+    <line x1="960" y1="540" x2="1920" y2="900"/>
+    <!-- Top -->
+    <line x1="960" y1="540" x2="200" y2="0"/>
+    <line x1="960" y1="540" x2="450" y2="0"/>
+    <line x1="960" y1="540" x2="700" y2="0"/>
+    <line x1="960" y1="540" x2="960" y2="0"/>
+    <line x1="960" y1="540" x2="1220" y2="0"/>
+    <line x1="960" y1="540" x2="1470" y2="0"/>
+    <line x1="960" y1="540" x2="1720" y2="0"/>
+    <!-- Bottom -->
+    <line x1="960" y1="540" x2="200" y2="1080"/>
+    <line x1="960" y1="540" x2="450" y2="1080"/>
+    <line x1="960" y1="540" x2="700" y2="1080"/>
+    <line x1="960" y1="540" x2="960" y2="1080"/>
+    <line x1="960" y1="540" x2="1220" y2="1080"/>
+    <line x1="960" y1="540" x2="1470" y2="1080"/>
+    <line x1="960" y1="540" x2="1720" y2="1080"/>
+  </g>
+
+  <!-- Concentric circles from center (radar/range rings) -->
+  <g opacity="0.1" stroke="#06b6d4" stroke-width="0.6" fill="none">
+    <circle cx="960" cy="540" r="120"/>
+    <circle cx="960" cy="540" r="240"/>
+    <circle cx="960" cy="540" r="380"/>
+    <circle cx="960" cy="540" r="530"/>
+    <circle cx="960" cy="540" r="700"/>
+    <circle cx="960" cy="540" r="900"/>
+  </g>
+
+  <!-- === DRONE SILHOUETTES === -->
+
+  <!-- Main large drone — top-left area, fading -->
+  <g filter="url(#softGlow)" opacity="0.25" transform="translate(280, 175) scale(2.2) rotate(-8)">
+    <!-- Body -->
+    <rect x="-14" y="-5" width="28" height="10" rx="3" fill="#06b6d4"/>
+    <!-- Arms -->
+    <line x1="-14" y1="-4" x2="-34" y2="-22" stroke="#06b6d4" stroke-width="2.5"/>
+    <line x1="14" y1="-4" x2="34" y2="-22" stroke="#06b6d4" stroke-width="2.5"/>
+    <line x1="-14" y1="4" x2="-34" y2="24" stroke="#06b6d4" stroke-width="2.5"/>
+    <line x1="14" y1="4" x2="34" y2="24" stroke="#06b6d4" stroke-width="2.5"/>
+    <!-- Rotors -->
+    <ellipse cx="-34" cy="-22" rx="14" ry="4" fill="none" stroke="#06b6d4" stroke-width="1.5" opacity="0.8"/>
+    <ellipse cx="34" cy="-22" rx="14" ry="4" fill="none" stroke="#06b6d4" stroke-width="1.5" opacity="0.8"/>
+    <ellipse cx="-34" cy="24" rx="14" ry="4" fill="none" stroke="#06b6d4" stroke-width="1.5" opacity="0.8"/>
+    <ellipse cx="34" cy="24" rx="14" ry="4" fill="none" stroke="#06b6d4" stroke-width="1.5" opacity="0.8"/>
+    <!-- Center dot -->
+    <circle cx="0" cy="0" r="3" fill="#38bdf8"/>
+    <!-- Camera gimbal -->
+    <line x1="0" y1="5" x2="0" y2="12" stroke="#06b6d4" stroke-width="1.5"/>
+    <circle cx="0" cy="14" r="4" fill="none" stroke="#06b6d4" stroke-width="1.5"/>
+  </g>
+
+  <!-- Medium drone — bottom right -->
+  <g filter="url(#softGlow)" opacity="0.18" transform="translate(1620, 820) scale(1.5) rotate(12)">
+    <rect x="-14" y="-5" width="28" height="10" rx="3" fill="#0ea5e9"/>
+    <line x1="-14" y1="-4" x2="-34" y2="-22" stroke="#0ea5e9" stroke-width="2.5"/>
+    <line x1="14" y1="-4" x2="34" y2="-22" stroke="#0ea5e9" stroke-width="2.5"/>
+    <line x1="-14" y1="4" x2="-34" y2="24" stroke="#0ea5e9" stroke-width="2.5"/>
+    <line x1="14" y1="4" x2="34" y2="24" stroke="#0ea5e9" stroke-width="2.5"/>
+    <ellipse cx="-34" cy="-22" rx="14" ry="4" fill="none" stroke="#0ea5e9" stroke-width="1.5" opacity="0.8"/>
+    <ellipse cx="34" cy="-22" rx="14" ry="4" fill="none" stroke="#0ea5e9" stroke-width="1.5" opacity="0.8"/>
+    <ellipse cx="-34" cy="24" rx="14" ry="4" fill="none" stroke="#0ea5e9" stroke-width="1.5" opacity="0.8"/>
+    <ellipse cx="34" cy="24" rx="14" ry="4" fill="none" stroke="#0ea5e9" stroke-width="1.5" opacity="0.8"/>
+    <circle cx="0" cy="0" r="3" fill="#7dd3fc"/>
+    <line x1="0" y1="5" x2="0" y2="12" stroke="#0ea5e9" stroke-width="1.5"/>
+    <circle cx="0" cy="14" r="4" fill="none" stroke="#0ea5e9" stroke-width="1.5"/>
+  </g>
+
+  <!-- Tiny drone far right -->
+  <g opacity="0.12" transform="translate(1750, 300) scale(0.8) rotate(-15)">
+    <rect x="-14" y="-5" width="28" height="10" rx="3" fill="#38bdf8"/>
+    <line x1="-14" y1="-4" x2="-34" y2="-22" stroke="#38bdf8" stroke-width="2.5"/>
+    <line x1="14" y1="-4" x2="34" y2="-22" stroke="#38bdf8" stroke-width="2.5"/>
+    <line x1="-14" y1="4" x2="-34" y2="24" stroke="#38bdf8" stroke-width="2.5"/>
+    <line x1="14" y1="4" x2="34" y2="24" stroke="#38bdf8" stroke-width="2.5"/>
+    <ellipse cx="-34" cy="-22" rx="14" ry="4" fill="none" stroke="#38bdf8" stroke-width="1.5"/>
+    <ellipse cx="34" cy="-22" rx="14" ry="4" fill="none" stroke="#38bdf8" stroke-width="1.5"/>
+    <ellipse cx="-34" cy="24" rx="14" ry="4" fill="none" stroke="#38bdf8" stroke-width="1.5"/>
+    <ellipse cx="34" cy="24" rx="14" ry="4" fill="none" stroke="#38bdf8" stroke-width="1.5"/>
+    <circle cx="0" cy="0" r="3" fill="#7dd3fc"/>
+  </g>
+
+  <!-- === FLIGHT PATHS (curved dashed trails) === -->
+  <g filter="url(#glow)" opacity="0.3" fill="none" stroke="#06b6d4" stroke-dasharray="6 10">
+    <!-- Arc from top-left drone going center -->
+    <path d="M 280 175 Q 500 350 700 480" stroke-width="1.2"/>
+    <!-- Arc from center going bottom right -->
+    <path d="M 960 540 Q 1200 620 1500 750" stroke-width="1.2"/>
+    <!-- Arc from right drone dipping lower -->
+    <path d="M 1750 300 Q 1700 500 1620 820" stroke-width="1"/>
+    <!-- Another flight path upper -->
+    <path d="M 100 80 Q 400 200 700 200 Q 1100 200 1400 120" stroke-width="0.8" stroke-dasharray="4 14"/>
+  </g>
+
+  <!-- Altitude markers / dotted vertical drop lines -->
+  <g opacity="0.15" stroke="#06b6d4" stroke-width="0.8" stroke-dasharray="3 8" fill="none">
+    <line x1="280" y1="175" x2="280" y2="540"/>
+    <line x1="1620" y1="820" x2="1620" y2="540"/>
+    <line x1="1750" y1="300" x2="1750" y2="540"/>
+  </g>
+
+  <!-- Crosshair target ring at center (subtle) -->
+  <g filter="url(#glow)" opacity="0.2" stroke="#06b6d4" stroke-width="1" fill="none" transform="translate(960,540)">
+    <circle r="20"/>
+    <circle r="40"/>
+    <line x1="-55" y1="0" x2="-22" y2="0"/>
+    <line x1="22" y1="0" x2="55" y2="0"/>
+    <line x1="0" y1="-55" x2="0" y2="-22"/>
+    <line x1="0" y1="22" x2="0" y2="55"/>
+    <!-- Corner ticks -->
+    <path d="M -50 -50 L -50 -35 M -50 -50 L -35 -50" stroke-width="1.5"/>
+    <path d="M 50 -50 L 50 -35 M 50 -50 L 35 -50" stroke-width="1.5"/>
+    <path d="M -50 50 L -50 35 M -50 50 L -35 50" stroke-width="1.5"/>
+    <path d="M 50 50 L 50 35 M 50 50 L 35 50" stroke-width="1.5"/>
+  </g>
+
+  <!-- Small scattered data points / nodes -->
+  <g opacity="0.35" fill="#06b6d4" filter="url(#glow)">
+    <circle cx="280" cy="175" r="3"/>
+    <circle cx="1620" cy="820" r="3"/>
+    <circle cx="1750" cy="300" r="2"/>
+    <circle cx="960" cy="540" r="2"/>
+    <!-- Flight path waypoints -->
+    <circle cx="500" cy="350" r="1.5"/>
+    <circle cx="700" cy="480" r="1.5"/>
+    <circle cx="1200" cy="620" r="1.5"/>
+    <circle cx="1500" cy="750" r="1.5"/>
+    <circle cx="400" cy="200" r="1.5"/>
+    <circle cx="1100" cy="200" r="1.5"/>
+  </g>
+
+  <!-- Wind streaks — very subtle horizontal motion lines -->
+  <g opacity="0.06" stroke="#38bdf8" stroke-width="0.5" fill="none">
+    <line x1="0" y1="180" x2="400" y2="165"/>
+    <line x1="0" y1="290" x2="600" y2="270"/>
+    <line x1="1500" y1="420" x2="1920" y2="410"/>
+    <line x1="1200" y1="650" x2="1920" y2="640"/>
+    <line x1="0" y1="860" x2="350" y2="850"/>
+    <line x1="50" y1="920" x2="500" y2="900"/>
+  </g>
+
+  <!-- Corner decorative brackets -->
+  <g opacity="0.2" stroke="#06b6d4" stroke-width="1.2" fill="none">
+    <path d="M 30 30 L 30 80 M 30 30 L 80 30"/>
+    <path d="M 1890 30 L 1890 80 M 1890 30 L 1840 30"/>
+    <path d="M 30 1050 L 30 1000 M 30 1050 L 80 1050"/>
+    <path d="M 1890 1050 L 1890 1000 M 1890 1050 L 1840 1050"/>
+  </g>
+
+  <!-- Fine noise overlay for texture -->
+  <rect width="1920" height="1080" fill="url(#bgGrad)" opacity="0.08" filter="url(#noise)"/>
+</svg>

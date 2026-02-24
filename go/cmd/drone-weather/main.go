@@ -144,7 +144,7 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	log.Printf("Drone Weather server listening on :%s", port)
+	log.Printf("Drohnenwetter server listening on :%s", port)
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}

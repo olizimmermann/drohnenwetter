@@ -1,11 +1,14 @@
 {{template "head" .}}
 
 <style>
-  body {
-    background-image: url('/static/drohnenwetter-dark.svg');
+  html[data-theme="dark"] body,
+  html[data-theme="light"] body {
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
+  }
+  html[data-theme="dark"] body {
+    background-image: url('/static/drohnenwetter-dark.svg');
   }
   html[data-theme="light"] body {
     background-image: url('/static/drohnenwetter-light.svg');

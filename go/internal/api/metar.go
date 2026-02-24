@@ -32,7 +32,7 @@ var (
 	optionRe = regexp.MustCompile(`<option[^>]+value="([^"]*)"[^>]*>\s*([^<]+?)\s*</option>`)
 	tagRe    = regexp.MustCompile(`<[^>]+>`)
 	tafSecRe = regexp.MustCompile(`(?s)<b>TAF:</b>(.*?)(?:<b>|</div>|</p>|$)`)
-	cloudRe  = regexp.MustCompile(`(?:BKN)(\d{3})`)
+	cloudRe  = regexp.MustCompile(`BKN(\d{3})`)
 )
 
 const allmetBase = "https://de.allmetsat.com/metar-taf/deutschland.php"

@@ -29,6 +29,42 @@ type hereResponse struct {
 	} `json:"items"`
 }
 
+func ReverseGeocode(lat, lon float64, hereAPIKey string) (*GeocodeResult, error) {
+	params := url.Values{}
+	params.Set("at", fmt.Sprintf("%f,%f", lat, lon))
+	params.Set("lang", "de")
+	params.Set("apiKey", hereAPIKey)
+
+	rawURL := "https://revgeocode.search.hereapi.com/v1/revgeocode?" + params.Encode()
+
+	headers := map[string]string{
+		"User-Agent":      "safeflight/1.0",
+		"Accept":          "application/json",
+		"Accept-Language": "de-DE,de;q=0.9",
+	}
+
+	body, err := doGet(rawURL, headers)
+	if err != nil {
+		return nil, fmt.Errorf("revgeocode request: %w", err)
+	}
+
+	var resp hereResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, fmt.Errorf("revgeocode parse: %w", err)
+	}
+	if len(resp.Items) == 0 {
+		return nil, fmt.Errorf("no address found for coordinates")
+	}
+
+	item := resp.Items[0]
+	return &GeocodeResult{
+		Lat:   lat,
+		Lon:   lon,
+		Title: item.Title,
+		City:  item.Address.City,
+	}, nil
+}
+
 func Geocode(address, hereAPIKey string) (*GeocodeResult, error) {
 	params := url.Values{}
 	params.Set("q", address)

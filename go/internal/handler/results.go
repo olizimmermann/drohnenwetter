@@ -2,9 +2,11 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/olizimmermann/drone-weather/internal/api"
@@ -80,24 +82,51 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	address := r.FormValue("address")
-	if address == "" {
-		h.renderError(w, "Bitte geben Sie eine Adresse ein.", "Please enter an address.")
-		return
-	}
-	if len(address) > 100 {
-		h.renderError(w, "Adresse zu lang (max. 100 Zeichen).", "Address too long (max. 100 characters).")
-		return
-	}
+	var geo *api.GeocodeResult
 
-	geo, err := api.Geocode(address, h.hereAPIKey)
-	if err != nil {
-		log.Printf("[results] geocode error: %v", err)
-		h.renderError(w, "Adresse nicht gefunden. Bitte prüfen Sie die Eingabe.", "Address not found. Please check your input.")
-		return
-	}
+	latStr := r.FormValue("lat")
+	lonStr := r.FormValue("lon")
 
-	log.Printf("[results] resolved %q → %.6f, %.6f", geo.Title, geo.Lat, geo.Lon)
+	if latStr != "" && lonStr != "" {
+		// GPS path: coordinates supplied by the browser
+		lat, errLat := strconv.ParseFloat(latStr, 64)
+		lon, errLon := strconv.ParseFloat(lonStr, 64)
+		if errLat != nil || errLon != nil || lat == 0 || lon == 0 {
+			h.renderError(w, "Ungültige GPS-Koordinaten.", "Invalid GPS coordinates.")
+			return
+		}
+		var err error
+		geo, err = api.ReverseGeocode(lat, lon, h.hereAPIKey)
+		if err != nil {
+			// Reverse geocode failed — still usable, just show raw coords
+			log.Printf("[results] revgeocode error: %v", err)
+			geo = &api.GeocodeResult{
+				Lat:   lat,
+				Lon:   lon,
+				Title: fmt.Sprintf("%.5f, %.5f", lat, lon),
+			}
+		}
+		log.Printf("[results] GPS %.6f, %.6f → %q", lat, lon, geo.Title)
+	} else {
+		// Address path: forward geocode
+		address := r.FormValue("address")
+		if address == "" {
+			h.renderError(w, "Bitte geben Sie eine Adresse ein.", "Please enter an address.")
+			return
+		}
+		if len(address) > 100 {
+			h.renderError(w, "Adresse zu lang (max. 100 Zeichen).", "Address too long (max. 100 characters).")
+			return
+		}
+		var err error
+		geo, err = api.Geocode(address, h.hereAPIKey)
+		if err != nil {
+			log.Printf("[results] geocode error: %v", err)
+			h.renderError(w, "Adresse nicht gefunden. Bitte prüfen Sie die Eingabe.", "Address not found. Please check your input.")
+			return
+		}
+		log.Printf("[results] resolved %q → %.6f, %.6f", geo.Title, geo.Lat, geo.Lon)
+	}
 
 	fetched := h.fetchAll(geo.Lat, geo.Lon, geo.City)
 

@@ -9,7 +9,10 @@ RUN go mod download
 
 # Build
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o drone-weather ./cmd/drone-weather
+RUN VERSION=$(cat VERSION) && \
+    CGO_ENABLED=0 GOOS=linux go build \
+      -ldflags="-s -w -X main.version=${VERSION}" \
+      -o drone-weather ./cmd/drone-weather
 
 ## ── Stage 2: minimal runtime ────────────────────────────────────────────────
 FROM gcr.io/distroless/static-debian12:nonroot

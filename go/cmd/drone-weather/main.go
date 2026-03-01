@@ -16,6 +16,9 @@ import (
 	"github.com/olizimmermann/drone-weather/internal/handler"
 )
 
+// version is injected at build time via -ldflags="-X main.version=x.y"
+var version = "dev"
+
 // ── Rate limiting ─────────────────────────────────────────────────────────────
 
 type ipLimiter struct {
@@ -84,6 +87,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 
 func loadTemplates(dir string) *template.Template {
 	funcMap := template.FuncMap{
+		"appVersion": func() string { return version },
 		"findAlt": func(entries []assessment.AltEntry, key string) assessment.AltEntry {
 			for _, e := range entries {
 				if e.Key == key {

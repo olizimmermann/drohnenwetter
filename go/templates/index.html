@@ -108,6 +108,38 @@
   .btn-primary:hover { opacity: .88; }
   .btn-primary:active { opacity: .75; }
 
+  .form-actions {
+    display: flex;
+    gap: .5rem;
+    margin-top: .75rem;
+  }
+  .form-actions .btn-primary { flex: 1; margin-top: 0; }
+
+  .btn-gps {
+    width: 48px;
+    min-height: 48px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface2);
+    font-size: 20px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-gps:hover { opacity: .8; }
+  .btn-gps:disabled { opacity: .4; cursor: default; }
+
+  .gps-error {
+    margin-top: .5rem;
+    font-size: 12px;
+    color: var(--warn);
+  }
+
   .divider {
     height: 1px;
     background: var(--border);
@@ -136,8 +168,8 @@
       <div>
         <div class="brand-name">drohnenwetter.de</div>
         <div class="brand-sub">
-          <span data-de>Wetter &amp; Luftraum · Deutschland · <span style="color: #ffab44;">beta 0.3</span></span>
-          <span data-en>Weather &amp; Airspace · Germany · <span style="color: #ffab44;">beta 0.3</span></span>
+          <span data-de>Wetter &amp; Luftraum · Deutschland · <span style="color: #ffab44;">beta {{appVersion}}</span></span>
+          <span data-en>Weather &amp; Airspace · Germany · <span style="color: #ffab44;">beta {{appVersion}}</span></span>
         </div>
       </div>
       <div class="controls">
@@ -149,7 +181,9 @@
       </div>
     </div>
 
-    <form method="POST" action="/results">
+    <form method="POST" action="/results" id="main-form">
+      <input type="hidden" name="lat" id="lat">
+      <input type="hidden" name="lon" id="lon">
       <label for="address">
         <span data-de>Standortadresse</span>
         <span data-en>Location Address</span>
@@ -165,11 +199,15 @@
         autofocus
         enterkeyhint="search"
       >
-      <button type="submit" class="btn-primary">
-        ▶&nbsp;
-        <span data-de>Prüfen</span>
-        <span data-en>Check</span>
-      </button>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">
+          ▶&nbsp;<span data-de>Prüfen</span><span data-en>Check</span>
+        </button>
+        <button type="button" class="btn-gps" id="gps-btn" onclick="useGPS()" title="GPS-Standort verwenden">
+          📍
+        </button>
+      </div>
+      <div id="gps-error" class="gps-error" style="display:none"></div>
     </form>
 
     <div class="divider"></div>
@@ -190,5 +228,50 @@
   </div>
 </main>
 
+<script>
+function useGPS() {
+  var btn = document.getElementById('gps-btn');
+  var errBox = document.getElementById('gps-error');
+  errBox.style.display = 'none';
+
+  if (!navigator.geolocation) {
+    errBox.innerHTML = '<span data-de>GPS nicht verfügbar.</span><span data-en>GPS not available.</span>';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳';
+
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      document.getElementById('lat').value = pos.coords.latitude;
+      document.getElementById('lon').value = pos.coords.longitude;
+      var addr = document.getElementById('address');
+      addr.removeAttribute('required');
+      addr.value = '📍 GPS';
+      document.getElementById('main-form').submit();
+    },
+    function(err) {
+      btn.disabled = false;
+      btn.textContent = '📍';
+      var isHttps = location.protocol === 'https:';
+      var msgs = {
+        1: [
+          isHttps ? 'Standortzugriff verweigert. Bitte in den Einstellungen erlauben.' : 'GPS erfordert HTTPS. Bitte die Adresse manuell eingeben.',
+          isHttps ? 'Location access denied. Please allow it in settings.' : 'GPS requires HTTPS. Please enter the address manually.'
+        ],
+        2: ['Standort nicht verfügbar.', 'Location unavailable.'],
+        3: ['Zeitüberschreitung bei Standortabfrage.', 'Location request timed out.']
+      };
+      var m = msgs[err.code] || ['GPS-Fehler.', 'GPS error.'];
+      var lang = document.documentElement.getAttribute('data-lang') || 'de';
+      errBox.textContent = lang === 'en' ? m[1] : m[0];
+      errBox.style.display = 'block';
+    },
+    { timeout: 10000, maximumAge: 60000 }
+  );
+}
+</script>
 {{template "uiscript" .}}
 {{template "footer" .}}

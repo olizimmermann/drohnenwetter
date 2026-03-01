@@ -6,7 +6,9 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/olizimmermann/drone-weather/internal/api"
@@ -76,6 +78,28 @@ func (h *ResultsHandler) fetchAll(lat, lon float64, city string) *allFetched {
 	return out
 }
 
+// coordRe matches "lat, lon" or "lat lon" in decimal degree format.
+// e.g. "52.5200, 13.4050" / "52.5200 13.4050" / "52.52,13.405"
+var coordRe = regexp.MustCompile(`^\s*(-?\d{1,3}(?:\.\d+)?)\s*[,\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$`)
+
+// parseCoords returns (lat, lon, true) if s looks like a coordinate pair.
+func parseCoords(s string) (float64, float64, bool) {
+	m := coordRe.FindStringSubmatch(strings.TrimSpace(s))
+	if m == nil {
+		return 0, 0, false
+	}
+	lat, err1 := strconv.ParseFloat(m[1], 64)
+	lon, err2 := strconv.ParseFloat(m[2], 64)
+	if err1 != nil || err2 != nil {
+		return 0, 0, false
+	}
+	// Sanity: lat −90…90, lon −180…180
+	if lat < -90 || lat > 90 || lon < -180 || lon > 180 {
+		return 0, 0, false
+	}
+	return lat, lon, true
+}
+
 func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -108,7 +132,7 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Printf("[results] GPS %.6f, %.6f → %q", lat, lon, geo.Title)
 	} else {
-		// Address path: forward geocode
+		// Address path: forward geocode (or coordinate paste detection)
 		address := r.FormValue("address")
 		if address == "" {
 			h.renderError(w, "Bitte geben Sie eine Adresse ein.", "Please enter an address.")
@@ -118,12 +142,28 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.renderError(w, "Adresse zu lang (max. 100 Zeichen).", "Address too long (max. 100 characters).")
 			return
 		}
+
 		var err error
-		geo, err = api.Geocode(address, h.hereAPIKey)
-		if err != nil {
-			log.Printf("[results] geocode error: %v", err)
-			h.renderError(w, "Adresse nicht gefunden. Bitte prüfen Sie die Eingabe.", "Address not found. Please check your input.")
-			return
+		if lat, lon, ok := parseCoords(address); ok {
+			// Looks like pasted coordinates — use reverse geocode
+			log.Printf("[results] coordinate input detected: %.6f, %.6f", lat, lon)
+			geo, err = api.ReverseGeocode(lat, lon, h.hereAPIKey)
+			if err != nil {
+				log.Printf("[results] revgeocode error: %v", err)
+				geo = &api.GeocodeResult{
+					Lat:   lat,
+					Lon:   lon,
+					Title: fmt.Sprintf("%.5f, %.5f", lat, lon),
+				}
+			}
+		} else {
+			// Normal address — forward geocode
+			geo, err = api.Geocode(address, h.hereAPIKey)
+			if err != nil {
+				log.Printf("[results] geocode error: %v", err)
+				h.renderError(w, "Adresse nicht gefunden. Bitte prüfen Sie die Eingabe.", "Address not found. Please check your input.")
+				return
+			}
 		}
 		log.Printf("[results] resolved %q → %.6f, %.6f", geo.Title, geo.Lat, geo.Lon)
 	}

@@ -9,26 +9,31 @@
   {{/* ── Results page: dynamic title, noindex (POST result, not crawlable) ── */}}
   <title>{{.Address}} – Drohnenflug-Check | drohnenwetter.de</title>
   <meta name="description" content="Flugfreigabe für {{.Address}}: Windstärke, Temperatur, Taupunkt, DiPUL-Luftraumzonen und Kp-Index für Ihren Drohnenflug in Deutschland.">
-  <meta name="robots" content="noindex, nofollow">
+  <meta name="robots" content="noindex">
   {{else}}
   {{/* ── Homepage: full SEO ── */}}
-  <title>Drohnenwetter.de – Wetter &amp; Luftraumcheck für Drohnen in Deutschland</title>
+  {{/* Title: ~55 chars — fits Google's ~60-char pixel budget */}}
+  <title>Drohnenwetter.de – Wetter &amp; Luftraumcheck für Drohnen</title>
   <meta name="description" content="Echtzeit-Wettercheck und Luftraumanalyse für legale Drohnenflüge in Deutschland. Wind, Temperatur, Taupunkt, DiPUL-Luftraumzonen und Kp-Index – optimiert für DJI Matrice 30 (M30T).">
   <meta name="keywords" content="Drohnenwetter, Drohnen Wetter Deutschland, Drohnenflug Check, Luftraum Check Drohne, DJI Matrice 30 Wetter, M30T Flugcheck, DiPUL Luftraumzonen, Kp-Index Drohne, VLOS Drohne, drohnenwetter.de, drone weather Germany, airspace check Germany, drone flight check Germany">
   <meta name="robots" content="index, follow">
   <meta name="author" content="drohnenwetter.de">
+  <meta name="geo.region" content="DE">
+  <meta name="geo.placename" content="Deutschland">
   <link rel="canonical" href="https://drohnenwetter.de/">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://drohnenwetter.de/">
-  <meta property="og:title" content="Drohnenwetter.de – Wetter &amp; Luftraumcheck für Drohnen in Deutschland">
+  <meta property="og:title" content="Drohnenwetter.de – Wetter &amp; Luftraumcheck für Drohnen">
   <meta property="og:description" content="Echtzeit-Wettercheck und Luftraumanalyse für legale Drohnenflüge in Deutschland. Wind, Temperatur, Taupunkt, DiPUL-Luftraumzonen und Kp-Index.">
   <meta property="og:image" content="https://drohnenwetter.de/static/favicon-256x256.png">
   <meta property="og:image:width" content="256">
   <meta property="og:image:height" content="256">
+  <meta property="og:image:alt" content="drohnenwetter.de – Drohnenflug-Check für Deutschland">
   <meta property="og:locale" content="de_DE">
   <meta property="og:locale:alternate" content="en_GB">
+  <meta property="og:locale:alternate" content="en_US">
   <meta property="og:site_name" content="drohnenwetter.de">
 
   <!-- Twitter Card -->
@@ -36,6 +41,7 @@
   <meta name="twitter:title" content="Drohnenwetter.de – Wetter &amp; Luftraumcheck für Drohnen">
   <meta name="twitter:description" content="Echtzeit-Wettercheck und Luftraumanalyse für legale Drohnenflüge in Deutschland.">
   <meta name="twitter:image" content="https://drohnenwetter.de/static/favicon-256x256.png">
+  <meta name="twitter:image:alt" content="drohnenwetter.de – Drohnenflug-Check für Deutschland">
 
   <!-- JSON-LD structured data -->
   <script type="application/ld+json">
@@ -56,6 +62,12 @@
     "areaServed": {
       "@type": "Country",
       "name": "Germany"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "drohnenwetter.de",
+      "url": "https://drohnenwetter.de",
+      "email": "drohnenwetter@ozimmermann.com"
     },
     "featureList": [
       "Echtzeit-Wetterdaten (DFS UTM, OpenWeatherMap)",

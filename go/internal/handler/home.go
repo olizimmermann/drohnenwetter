@@ -19,7 +19,7 @@ func (h *HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if err := h.tmpl.ExecuteTemplate(w, "index.html", nil); err != nil {
+	if err := h.tmpl.ExecuteTemplate(w, "index.html", struct{ Address string }{}); err != nil {
 		log.Printf("[home] template error: %v", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 	}

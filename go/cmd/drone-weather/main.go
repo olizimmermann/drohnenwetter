@@ -130,6 +130,12 @@ func main() {
 	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, staticDir+"/favicon.ico")
 	})
+	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, staticDir+"/robots.txt")
+	})
+	mux.HandleFunc("/sitemap.xml", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, staticDir+"/sitemap.xml")
+	})
 
 	mux.Handle("/", rateLimitMiddleware(handler.NewHomeHandler(tmpl)))
 	mux.Handle("/results", rateLimitMiddleware(handler.NewResultsHandler(

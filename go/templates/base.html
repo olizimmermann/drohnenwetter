@@ -4,7 +4,70 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>drohnenwetter.de</title>
+
+  {{if .Address}}
+  {{/* ── Results page: dynamic title, noindex (POST result, not crawlable) ── */}}
+  <title>{{.Address}} – Drohnenflug-Check | drohnenwetter.de</title>
+  <meta name="description" content="Flugfreigabe für {{.Address}}: Windstärke, Temperatur, Taupunkt, DiPUL-Luftraumzonen und Kp-Index für Ihren Drohnenflug in Deutschland.">
+  <meta name="robots" content="noindex, nofollow">
+  {{else}}
+  {{/* ── Homepage: full SEO ── */}}
+  <title>Drohnenwetter.de – Wetter &amp; Luftraumcheck für Drohnen in Deutschland</title>
+  <meta name="description" content="Echtzeit-Wettercheck und Luftraumanalyse für legale Drohnenflüge in Deutschland. Wind, Temperatur, Taupunkt, DiPUL-Luftraumzonen und Kp-Index – optimiert für DJI Matrice 30 (M30T).">
+  <meta name="keywords" content="Drohnenwetter, Drohnen Wetter Deutschland, Drohnenflug Check, Luftraum Check Drohne, DJI Matrice 30 Wetter, M30T Flugcheck, DiPUL Luftraumzonen, Kp-Index Drohne, VLOS Drohne, drohnenwetter.de, drone weather Germany, airspace check Germany, drone flight check Germany">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="drohnenwetter.de">
+  <link rel="canonical" href="https://drohnenwetter.de/">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://drohnenwetter.de/">
+  <meta property="og:title" content="Drohnenwetter.de – Wetter &amp; Luftraumcheck für Drohnen in Deutschland">
+  <meta property="og:description" content="Echtzeit-Wettercheck und Luftraumanalyse für legale Drohnenflüge in Deutschland. Wind, Temperatur, Taupunkt, DiPUL-Luftraumzonen und Kp-Index.">
+  <meta property="og:image" content="https://drohnenwetter.de/static/favicon-256x256.png">
+  <meta property="og:image:width" content="256">
+  <meta property="og:image:height" content="256">
+  <meta property="og:locale" content="de_DE">
+  <meta property="og:locale:alternate" content="en_GB">
+  <meta property="og:site_name" content="drohnenwetter.de">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Drohnenwetter.de – Wetter &amp; Luftraumcheck für Drohnen">
+  <meta name="twitter:description" content="Echtzeit-Wettercheck und Luftraumanalyse für legale Drohnenflüge in Deutschland.">
+  <meta name="twitter:image" content="https://drohnenwetter.de/static/favicon-256x256.png">
+
+  <!-- JSON-LD structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "drohnenwetter.de",
+    "url": "https://drohnenwetter.de",
+    "description": "Echtzeit-Wettercheck und Luftraumanalyse für legale Drohnenflüge in Deutschland. Wind, Temperatur, Taupunkt, DiPUL-Luftraumzonen und Kp-Index.",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web",
+    "inLanguage": ["de", "en"],
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "EUR"
+    },
+    "areaServed": {
+      "@type": "Country",
+      "name": "Germany"
+    },
+    "featureList": [
+      "Echtzeit-Wetterdaten (DFS UTM, OpenWeatherMap)",
+      "DiPUL Luftraumzonen und Flugbeschränkungen",
+      "Kp-Index GPS-Interferenzwarnung",
+      "DJI Matrice 30 (M30T) Betriebsbeurteilung",
+      "VLOS-konforme Flugfreigabe"
+    ]
+  }
+  </script>
+  {{end}}
+
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-icon-180x180.png">
   <link rel="manifest" href="/static/manifest.json">

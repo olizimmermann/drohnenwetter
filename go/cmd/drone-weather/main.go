@@ -137,6 +137,12 @@ func main() {
 		http.ServeFile(w, r, staticDir+"/sitemap.xml")
 	})
 
+	mux.HandleFunc("/impressum", func(w http.ResponseWriter, r *http.Request) {
+		if err := tmpl.ExecuteTemplate(w, "impressum.html", struct{ Address string }{}); err != nil {
+			log.Printf("[impressum] template error: %v", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+		}
+	})
 	mux.Handle("/", rateLimitMiddleware(handler.NewHomeHandler(tmpl)))
 	mux.Handle("/results", rateLimitMiddleware(handler.NewResultsHandler(
 		tmpl,

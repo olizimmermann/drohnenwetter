@@ -1,0 +1,198 @@
+{{template "head" .}}
+
+<style>
+  .page {
+    min-height: calc(100vh - 60px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1.25rem;
+  }
+
+  .impressum-card {
+    width: 100%;
+    max-width: 640px;
+  }
+
+  .impressum-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .impressum-header h1 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+  }
+
+  .impressum-body {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--text);
+  }
+
+  .impressum-body h2 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    margin: 1.5rem 0 .5rem;
+  }
+
+  .impressum-body p {
+    margin: 0;
+  }
+
+  .impressum-body a {
+    color: var(--ok);
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 1.25rem;
+  }
+  .back-link:hover { color: var(--ok); text-decoration: none; }
+
+  .lang-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 2rem 0;
+  }
+
+  .lang-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+</style>
+
+<main class="page">
+  <div class="impressum-card card">
+    <div class="impressum-header">
+      <a href="/" class="back-link">← <span data-de>Zurück</span><span data-en>Back</span></a>
+      <div class="controls">
+        <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark/light mode">☀️</button>
+        <div class="lang-toggle">
+          <button class="lang-btn" data-l="de" onclick="setLang('de')">DE</button>
+          <button class="lang-btn" data-l="en" onclick="setLang('en')">EN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── German ── -->
+    <div data-de>
+      <div class="lang-section-label">Deutsch</div>
+      <div class="impressum-body">
+        <h1 style="font-size:1.4rem;font-weight:700;margin-bottom:.25rem;">Impressum</h1>
+
+        <h2>Angaben gemäß § 5 TMG</h2>
+        <p>
+          Oliver Zimmermann<br>
+          <a href="https://ozimmermann.com" target="_blank" rel="noopener">ozimmermann.com</a><br>
+          E-Mail: <a href="mailto:public@ozimmermann.com">public@ozimmermann.com</a>
+        </p>
+
+        <h2>Verantwortlich für den Inhalt</h2>
+        <p>Oliver Zimmermann (Adresse wie oben)</p>
+
+        <h2>Zweck und Art des Angebots</h2>
+        <p>
+          Dieses Angebot ist ein privates, nicht-kommerzielles Projekt ohne Gewinnerzielungsabsicht.
+          Es dient ausschließlich zur persönlichen Information und Eigennutzung.
+          Alle angezeigten Wetter- und Luftraumdaten stammen von öffentlichen Drittanbieter-APIs
+          und werden ohne Gewähr bereitgestellt.
+        </p>
+
+        <h2>Haftungsausschluss</h2>
+        <p>
+          Die bereitgestellten Informationen dienen lediglich der Orientierung.
+          Sie ersetzen weder eine offizielle Flugwetterkonsultation noch die verbindliche
+          Prüfung der geltenden Luftverkehrsgesetze und -vorschriften.
+          Vor jedem Drohnenflug liegt die Verantwortung für die Einhaltung aller gesetzlichen
+          Vorschriften allein beim Piloten. Der Betreiber übernimmt keinerlei Haftung für
+          Schäden, die aus der Nutzung dieser Informationen entstehen.
+        </p>
+
+        <h2>Urheberrecht</h2>
+        <p>
+          Die auf dieser Website erstellten Inhalte und Werke unterliegen dem deutschen Urheberrecht.
+          Eine Vervielfältigung, Bearbeitung oder Verbreitung bedarf der vorherigen schriftlichen
+          Zustimmung des Betreibers.
+        </p>
+
+        <h2>Externe Links</h2>
+        <p>
+          Diese Website enthält Links zu externen Webseiten Dritter.
+          Auf deren Inhalte hat der Betreiber keinen Einfluss und übernimmt
+          für diese keine Haftung.
+        </p>
+      </div>
+    </div>
+
+    <div class="lang-divider"></div>
+
+    <!-- ── English ── -->
+    <div data-en>
+      <div class="lang-section-label">English</div>
+      <div class="impressum-body">
+        <h1 style="font-size:1.4rem;font-weight:700;margin-bottom:.25rem;">Legal Notice</h1>
+
+        <h2>Operator</h2>
+        <p>
+          Oliver Zimmermann<br>
+          <a href="https://ozimmermann.com" target="_blank" rel="noopener">ozimmermann.com</a><br>
+          E-Mail: <a href="mailto:public@ozimmermann.com">public@ozimmermann.com</a>
+        </p>
+
+        <h2>Responsible for content</h2>
+        <p>Oliver Zimmermann (address as above)</p>
+
+        <h2>Purpose and nature of this service</h2>
+        <p>
+          This is a private, non-commercial project with no commercial intent.
+          It is intended solely for personal information and private use.
+          All weather and airspace data is sourced from public third-party APIs
+          and is provided without warranty.
+        </p>
+
+        <h2>Disclaimer</h2>
+        <p>
+          The information provided is for guidance only.
+          It does not replace an official aeronautical weather briefing or the binding
+          review of applicable aviation laws and regulations.
+          Before every drone flight, responsibility for compliance with all legal
+          requirements rests solely with the pilot. The operator accepts no liability
+          for any damages arising from use of this information.
+        </p>
+
+        <h2>Copyright</h2>
+        <p>
+          Content and works on this website are subject to German copyright law.
+          Reproduction, processing, or distribution requires the prior written
+          consent of the operator.
+        </p>
+
+        <h2>External links</h2>
+        <p>
+          This website contains links to third-party websites.
+          The operator has no influence over their content and accepts no liability for them.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+{{template "uiscript" .}}
+{{template "footer" .}}

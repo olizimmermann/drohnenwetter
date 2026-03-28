@@ -11,7 +11,8 @@ Real-time weather and airspace safety assessment for **DJI Matrice 30T (M30T)** 
 - **Safety assessment** — evaluates wind speed (per altitude), gusts, temperature, dew point, and geomagnetic activity against M30T operating limits
 - **Airspace overlay** — DiPUL/DFS WMS with 32 layer types (control zones, nature reserves, military areas, …)
 - **Affected zones** — API-sourced GeoJSON polygons for your exact location, rendered on the map with popups
-- **Parallel API calls** — all 4 data sources fetched concurrently (UTM, OpenWeatherMap, Kp-Index, DiPUL)
+- **Live air traffic** — nearby aircraft (✈️ fixed-wing, 🚁 helicopters, 🛩 gliders, 🛸 UAVs) from OpenSky Network, auto-refreshed every 15 seconds while the page is open
+- **Parallel API calls** — all data sources fetched concurrently (UTM, OpenWeatherMap, Kp-Index, DiPUL, OpenSky)
 - **Bilingual** — German / English toggle, persisted in localStorage
 - **Dark & light mode** — toggle, persisted in localStorage
 - **Mobile-optimised** — responsive grid, touch-friendly controls, 16px inputs (no iOS auto-zoom)
@@ -27,6 +28,7 @@ Real-time weather and airspace safety assessment for **DJI Matrice 30T (M30T)** 
 | [OpenWeatherMap](https://openweathermap.org) | Current dew point |
 | [GFZ Potsdam](https://www.gfz-potsdam.de) | Kp-Index (geomagnetic activity) |
 | [DiPUL / DFS](https://uas-betrieb.de) | Airspace zones & WMS overlay |
+| [OpenSky Network](https://opensky-network.org) | Live air traffic (state vectors, ~11 km radius) |
 | [HERE Maps](https://www.here.com) | Address geocoding (Germany only) |
 | [OpenStreetMap](https://www.openstreetmap.org) | Base map tiles |
 | [Leaflet](https://leafletjs.com) | Interactive map |
@@ -68,16 +70,19 @@ drone-weather/
 │   │   │   ├── client.go        # Shared HTTP client (8 s timeout)
 │   │   │   ├── geocode.go       # HERE Maps geocoding
 │   │   │   ├── weather.go       # DFS UTM + OpenWeatherMap + Kp-Index
-│   │   │   └── dipul.go         # DiPUL token cache + zone fetching
+│   │   │   ├── dipul.go         # DiPUL token cache + zone fetching
+│   │   │   └── opensky.go       # OpenSky OAuth2 token cache + traffic fetch
 │   │   ├── assessment/
 │   │   │   └── assess.go        # Safety evaluation logic
 │   │   └── handler/
 │   │       ├── home.go          # GET /
-│   │       └── results.go       # POST /results — parallel fetch & render
+│   │       ├── results.go       # POST /results — parallel fetch & render
+│   │       ├── traffic.go       # GET /traffic — live aircraft JSON
+│   │       └── track.go         # GET /track — flight track proxy
 │   ├── templates/
 │   │   ├── base.html            # Shared CSS, dark/light mode, i18n, footer
 │   │   ├── index.html           # Landing page
-│   │   └── results.html         # Dashboard: metrics, map, zones
+│   │   └── results.html         # Dashboard: metrics, map, zones, live traffic
 │   ├── static/                  # Favicons, manifest
 │   ├── Dockerfile
 │   ├── go.mod
@@ -104,12 +109,18 @@ Create a `.env` file in the project root:
 ```env
 HERE_API_KEY=your_here_maps_api_key
 OPENWEATHER_TOKEN=your_openweathermap_api_key
+OPENSKY_CLIENT_ID=your_opensky_client_id
+OPENSKY_CLIENT_SECRET=your_opensky_client_secret
 ```
 
 | Variable | Where to get it |
 |----------|----------------|
 | `HERE_API_KEY` | [developer.here.com](https://developer.here.com) — free tier available |
 | `OPENWEATHER_TOKEN` | [openweathermap.org/api](https://openweathermap.org/api) — OneCall 3.0 required |
+| `OPENSKY_CLIENT_ID` | [opensky-network.org](https://opensky-network.org) — create API client under your account |
+| `OPENSKY_CLIENT_SECRET` | Same as above — client credentials OAuth2 flow |
+
+> `OPENSKY_CLIENT_ID` and `OPENSKY_CLIENT_SECRET` are optional. Without them the app falls back to the anonymous OpenSky API (lower rate limits, no track data).
 
 ### Run
 
@@ -136,6 +147,7 @@ If you do have Go installed locally:
 cd go
 go build ./...                                    # compile check
 HERE_API_KEY=... OPENWEATHER_TOKEN=... \
+  OPENSKY_CLIENT_ID=... OPENSKY_CLIENT_SECRET=... \
   go run ./cmd/drone-weather                      # run locally on :8080
 ```
 

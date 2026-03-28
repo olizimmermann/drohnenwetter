@@ -551,9 +551,17 @@
   var TRAFFIC_INTERVAL = 15000; // ms
   var trafficTimer = null;
 
+  var HELI_PREFIXES = ['CHX','ADAC','BPOL','SAR','ITH','HEMS','DRF','CHRIS'];
+  function isHelicopter(ac) {
+    if (ac.category === 8) return true;
+    var cs = (ac.callsign || '').toUpperCase();
+    return HELI_PREFIXES.some(function(p) { return cs.indexOf(p) === 0; });
+  }
+
   function acIcon(ac) {
-    var emoji  = ac.category === 8 ? '🚁' : ac.category === 9 ? '🛩' : ac.category === 14 ? '🛸' : '✈️';
-    var rotate = ac.category === 8 ? '' : 'transform:rotate(' + (ac.truTrack||0) + 'deg);';
+    var heli   = isHelicopter(ac);
+    var emoji  = heli ? '🚁' : ac.category === 9 ? '🛩' : ac.category === 14 ? '🛸' : '✈️';
+    var rotate = heli ? '' : 'transform:rotate(' + (ac.truTrack||0) + 'deg);';
     return L.divIcon({
       html: '<div style="font-size:1.15rem;line-height:1;' + rotate + 'filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))">' + emoji + '</div>',
       iconSize: [22, 22], iconAnchor: [11, 11], className: ''

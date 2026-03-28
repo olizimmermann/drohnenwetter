@@ -96,6 +96,7 @@ func loadTemplates(dir string) *template.Template {
 			}
 			return assessment.AltEntry{}
 		},
+		"add": func(a, b int) int { return a + b },
 	}
 	tmpl := template.New("").Funcs(funcMap)
 	tmpl = template.Must(tmpl.ParseGlob(dir + "/*.html"))
@@ -143,6 +144,8 @@ func main() {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 		}
 	})
+	mux.Handle("/track", rateLimitMiddleware(http.HandlerFunc(handler.TrackHandler)))
+	mux.Handle("/traffic", rateLimitMiddleware(http.HandlerFunc(handler.TrafficHandler)))
 	mux.Handle("/", rateLimitMiddleware(handler.NewHomeHandler(tmpl)))
 	mux.Handle("/results", rateLimitMiddleware(handler.NewResultsHandler(
 		tmpl,

@@ -26,18 +26,21 @@ func NewResultsHandler(tmpl *template.Template, hereAPIKey, owToken string) *Res
 }
 
 type resultsData struct {
-	Address      string
-	Lat          float64
-	Lon          float64
-	Assessment   *assessment.Assessment
-	Zones        []api.AffectedArea
-	ZonesGeoJSON template.JS // safe JS — injected directly into <script>
-	CloudBase    *api.CloudBaseResult
-	OWFailed    bool // OpenWeatherMap unavailable
-	KpFailed    bool // Kp-Index unavailable
-	DiPULFailed bool // DiPUL airspace data unavailable
-	ErrorDE     string
-	ErrorEN     string
+	Address        string
+	Lat            float64
+	Lon            float64
+	Assessment     *assessment.Assessment
+	Zones          []api.AffectedArea
+	ZonesGeoJSON   template.JS // safe JS — injected directly into <script>
+	CloudBase      *api.CloudBaseResult
+	Traffic        []api.AircraftState
+	TrafficJSON    template.JS // safe JS — injected directly into <script>
+	OWFailed       bool // OpenWeatherMap unavailable
+	KpFailed       bool // Kp-Index unavailable
+	DiPULFailed    bool // DiPUL airspace data unavailable
+	TrafficFailed  bool // OpenSky live traffic unavailable
+	ErrorDE        string
+	ErrorEN        string
 }
 
 type allFetched struct {
@@ -46,14 +49,15 @@ type allFetched struct {
 	kp         float64
 	zones      []api.AffectedArea
 	cloudBase  *api.CloudBaseResult
-	errs       [4]error
+	traffic    []api.AircraftState
+	errs       [5]error
 }
 
 func (h *ResultsHandler) fetchAll(lat, lon float64, city string) *allFetched {
 	var wg sync.WaitGroup
 	out := &allFetched{}
 
-	wg.Add(5)
+	wg.Add(6)
 	go func() {
 		defer wg.Done()
 		out.utm, out.errs[0] = api.FetchUTMForecast(lat, lon)
@@ -73,6 +77,10 @@ func (h *ResultsHandler) fetchAll(lat, lon float64, city string) *allFetched {
 	go func() {
 		defer wg.Done()
 		out.cloudBase = api.FetchCloudBase(city) // never errors; check .Available
+	}()
+	go func() {
+		defer wg.Done()
+		out.traffic, out.errs[4] = api.FetchNearbyTraffic(lat, lon)
 	}()
 	wg.Wait()
 	return out
@@ -170,7 +178,7 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	fetched := h.fetchAll(geo.Lat, geo.Lon, geo.City)
 
-	labels := []string{"UTM", "OpenWeather", "Kp-Index", "DiPUL"}
+	labels := []string{"UTM", "OpenWeather", "Kp-Index", "DiPUL", "OpenSky"}
 	for i, e := range fetched.errs {
 		if e != nil {
 			log.Printf("[results] %s error: %v", labels[i], e)
@@ -182,9 +190,10 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	owFailed    := fetched.errs[1] != nil
-	kpFailed    := fetched.errs[2] != nil
-	dipulFailed := fetched.errs[3] != nil
+	owFailed      := fetched.errs[1] != nil
+	kpFailed      := fetched.errs[2] != nil
+	dipulFailed   := fetched.errs[3] != nil
+	trafficFailed := fetched.errs[4] != nil
 
 	a := assessment.Assess(fetched.utm, fetched.ow, fetched.kp)
 
@@ -194,17 +203,25 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		zonesJSON = []byte("[]")
 	}
 
+	trafficJSON, err := json.Marshal(fetched.traffic)
+	if err != nil {
+		trafficJSON = []byte("[]")
+	}
+
 	data := resultsData{
-		Address:      geo.Title,
-		Lat:          geo.Lat,
-		Lon:          geo.Lon,
-		Assessment:   a,
-		Zones:        fetched.zones,
-		ZonesGeoJSON: template.JS(zonesJSON),
-		CloudBase:    fetched.cloudBase,
-		OWFailed:     owFailed,
-		KpFailed:     kpFailed,
-		DiPULFailed:  dipulFailed,
+		Address:       geo.Title,
+		Lat:           geo.Lat,
+		Lon:           geo.Lon,
+		Assessment:    a,
+		Zones:         fetched.zones,
+		ZonesGeoJSON:  template.JS(zonesJSON),
+		CloudBase:     fetched.cloudBase,
+		Traffic:       fetched.traffic,
+		TrafficJSON:   template.JS(trafficJSON),
+		OWFailed:      owFailed,
+		KpFailed:      kpFailed,
+		DiPULFailed:   dipulFailed,
+		TrafficFailed: trafficFailed,
 	}
 
 	if err := h.tmpl.ExecuteTemplate(w, "results.html", data); err != nil {

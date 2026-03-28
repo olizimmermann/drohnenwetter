@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 )
 
@@ -35,6 +37,16 @@ func doPost(url string, body []byte, headers map[string]string) ([]byte, error) 
 		req.Header.Set(k, v)
 	}
 	return doRequest(req)
+}
+
+// newFormPost creates a POST request with an application/x-www-form-urlencoded body.
+func newFormPost(apiURL string, form url.Values) (*http.Request, error) {
+	req, err := http.NewRequest(http.MethodPost, apiURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return req, nil
 }
 
 func doRequest(req *http.Request) ([]byte, error) {

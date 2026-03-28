@@ -37,6 +37,7 @@
     .detail-grid { grid-template-columns: 1fr; }
     .topbar { padding: .55rem .75rem; }
     .location-label { font-size: 12px; }
+    .metric-card--status { display: none; }
   }
 
   /* ── Status banner ── */
@@ -246,6 +247,12 @@
       <span data-en>Airspace data unavailable (DiPUL) – please check airspace manually.</span>
     </div>
     {{end}}
+    {{if .TrafficFailed}}
+    <div class="data-warning-item">⚠️
+      <span data-de>Flugverkehr-Daten nicht verfügbar (OpenSky) – Luftverkehr bitte manuell prüfen.</span>
+      <span data-en>Live traffic data unavailable (OpenSky) – check air traffic manually.</span>
+    </div>
+    {{end}}
   </div>
   {{end}}
 
@@ -262,7 +269,7 @@
   {{/* ── Metric cards ── */}}
   <div class="metrics-row">
 
-    <div class="metric-card {{if $a.Flyable}}ok{{else}}warn{{end}}">
+    <div class="metric-card metric-card--status {{if $a.Flyable}}ok{{else}}warn{{end}}">
       <div class="metric-label" data-de>Flugstatus</div>
       <div class="metric-label" data-en>Flight Status</div>
       <span class="metric-icon">{{if $a.Flyable}}✅{{else}}🚫{{end}}</span>
@@ -317,6 +324,23 @@
       <span class="metric-icon">☁️</span>
       <div class="metric-value" style="color:var(--text)">{{printf "%.0f" $a.CloudCover}}<span class="metric-unit">%</span></div>
       <div class="metric-sub">{{printf "%.2f" $a.RainMM}} mm · {{printf "%.2f" $a.SnowCM}} cm</div>
+    </div>
+
+    {{$airborne := 0}}{{range .Traffic}}{{if not .OnGround}}{{$airborne = add $airborne 1}}{{end}}{{end}}
+    <div id="traffic-card" class="metric-card {{if gt $airborne 0}}warn{{else}}ok{{end}}">
+      <div class="metric-label" data-de>Luftverkehr (~11km)</div>
+      <div class="metric-label" data-en>Air Traffic (~11km)</div>
+      <span class="metric-icon">✈️</span>
+      <div id="traffic-count" class="metric-value" style="{{if gt $airborne 0}}color:var(--warn){{else}}color:var(--ok){{end}}">
+        {{$airborne}}
+      </div>
+      <div class="metric-sub">
+        {{if .TrafficFailed}}
+          <span data-de>nicht verfügbar</span><span data-en>unavailable</span>
+        {{else}}
+          <span data-de>Luftfahrzeuge in der Luft</span><span data-en>airborne aircraft</span>
+        {{end}}
+      </div>
     </div>
 
   </div>
@@ -513,6 +537,76 @@
     radius: 100, color: '#00d4ff', fillColor: '#00d4ff',
     fillOpacity: 0.08, weight: 2, dashArray: '5 5'
   }).addTo(map);
+
+  // ── Live air traffic from OpenSky ────────────────────────────────────────
+  var _esc = document.createElement('div');
+  function escapeHtml(s) {
+    _esc.textContent = String(s);
+    return _esc.innerHTML;
+  }
+
+  var trafficLayer = L.layerGroup().addTo(map);
+  var TRAFFIC_INTERVAL = 15000; // ms
+  var trafficTimer = null;
+
+  function acIcon(ac) {
+    var emoji  = ac.category === 8 ? '🚁' : ac.category === 9 ? '🛩' : ac.category === 14 ? '🛸' : '✈️';
+    var rotate = ac.category === 8 ? '' : 'transform:rotate(' + (ac.truTrack||0) + 'deg);';
+    return L.divIcon({
+      html: '<div style="font-size:1.15rem;line-height:1;' + rotate + 'filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))">' + emoji + '</div>',
+      iconSize: [22, 22], iconAnchor: [11, 11], className: ''
+    });
+  }
+
+  function renderTraffic(data) {
+    trafficLayer.clearLayers();
+    var airborne = 0;
+    (data || []).forEach(function(ac) {
+      if (!ac.onGround) airborne++;
+      if (!ac.lat || !ac.lon) return;
+      var label = escapeHtml(ac.callsign || ac.icao24 || '?');
+      var alt   = ac.baroAlt   ? (Math.round(ac.baroAlt)   + ' m')   : '?';
+      var spd   = ac.velocity  ? (Math.round(ac.velocity)  + ' m/s') : '?';
+      L.marker([ac.lat, ac.lon], {icon: acIcon(ac)})
+        .bindPopup(
+          '<strong>' + label + '</strong>' +
+          (ac.onGround ? ' <em>(ground)</em>' : '') +
+          '<br>Alt: ' + escapeHtml(alt) + '&nbsp;&nbsp;Speed: ' + escapeHtml(spd) +
+          '<br><small style="color:#888">' + escapeHtml(ac.icao24) + '</small>'
+        )
+        .addTo(trafficLayer);
+    });
+    var card  = document.getElementById('traffic-card');
+    var count = document.getElementById('traffic-count');
+    if (card && count) {
+      card.classList.toggle('ok',   airborne === 0);
+      card.classList.toggle('warn', airborne > 0);
+      count.style.color = airborne > 0 ? 'var(--warn)' : 'var(--ok)';
+      count.textContent = airborne;
+    }
+  }
+
+  function fetchTraffic() {
+    if (document.visibilityState !== 'visible') return;
+    fetch('/traffic?lat=' + lat + '&lon=' + lon)
+      .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(renderTraffic)
+      .catch(function() {});
+  }
+
+  // Seed with server-side data, then start polling.
+  renderTraffic({{.TrafficJSON}});
+  trafficTimer = setInterval(fetchTraffic, TRAFFIC_INTERVAL);
+
+  // Pause polling when tab is hidden, resume when visible.
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+      fetchTraffic(); // immediate refresh on return
+      trafficTimer = setInterval(fetchTraffic, TRAFFIC_INTERVAL);
+    } else {
+      clearInterval(trafficTimer);
+    }
+  });
 
   // ── GeoJSON overlays for specifically affected zones ──────────────────────
   var zonesData = {{.ZonesGeoJSON}};

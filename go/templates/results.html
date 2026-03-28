@@ -48,6 +48,7 @@
   }
   .status-banner.ok   { background: rgba(0,212,255,.07); border: 1px solid rgba(0,212,255,.25); color: var(--ok); }
   .status-banner.warn { background: rgba(255,71,87,.07);  border: 1px solid rgba(255,71,87,.25);  color: var(--warn); }
+  .status-banner.info { background: rgba(0,153,187,.08); border: 1px solid rgba(0,153,187,.28); color: var(--ok); }
   .status-icon { font-size: 1.4rem; }
 
   /* ── Metric cards ── */
@@ -60,9 +61,10 @@
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 1rem 1.1rem;
   }
-  .metric-card.ok   { border-top: 3px solid var(--ok); }
-  .metric-card.warn { border-top: 3px solid var(--warn); }
+  .metric-card.ok      { border-top: 3px solid var(--ok); }
+  .metric-card.warn    { border-top: 3px solid var(--warn); }
   .metric-card.neutral { border-top: 3px solid var(--border); }
+  .metric-card.info    { border-top: 3px solid var(--ok); }
   .metric-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .35rem; }
   .metric-value { font-size: 1.6rem; font-weight: 700; line-height: 1; }
   .metric-unit  { font-size: 12px; color: var(--muted); margin-left: 2px; }
@@ -318,7 +320,7 @@
       <div class="metric-sub"><span data-de>max. 4 (GPS-Störung)</span><span data-en>max. 4 (GPS interference)</span></div>
     </div>
 
-    <div class="metric-card neutral">
+    <div class="metric-card info">
       <div class="metric-label" data-de>Bewölkung</div>
       <div class="metric-label" data-en>Cloud Cover</div>
       <span class="metric-icon">☁️</span>

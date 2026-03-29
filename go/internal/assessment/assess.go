@@ -32,9 +32,10 @@ type Assessment struct {
 	WindGust     SpeedEntry
 	WindWarnings []string
 
-	DewPoint        float64
-	DewPointOK      bool
-	DewPointWarning string
+	DewPoint          float64
+	DewPointOK        bool
+	DewPointWarning   string
+	DewPointWarningEN string
 
 	RainMM     float64
 	SnowCM     float64
@@ -83,7 +84,9 @@ func Assess(utm *api.UTMResponse, ow *api.OWResponse, kp float64) *Assessment {
 		if dewWarn && a.DewPointOK {
 			a.DewPointOK = false
 			a.Flyable = false
-			a.DewPointWarning = fmt.Sprintf("Taupunkt %.1f°C nahe Temperatur %.1f°C [%s] – Nebelgefahr",
+			a.DewPointWarning = fmt.Sprintf("Taupunkt %.1f°C nahe Temperatur %.1f°C [%s] – Nebel- und Klareisbildungsgefahr",
+				ow.Current.DewPoint, t.Value, key)
+			a.DewPointWarningEN = fmt.Sprintf("Dew point %.1f°C near temperature %.1f°C [%s] – fog and clear ice risk",
 				ow.Current.DewPoint, t.Value, key)
 		}
 	}

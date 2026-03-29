@@ -263,7 +263,7 @@
   <div class="warnings-section">
     {{range $a.WindWarnings}}<div class="warning-item">💨 {{.}}</div>{{end}}
     {{range $a.TempWarnings}}<div class="warning-item">🌡 {{.}}</div>{{end}}
-    {{if $a.DewPointWarning}}<div class="warning-item">🌫 {{$a.DewPointWarning}}</div>{{end}}
+    {{if $a.DewPointWarning}}<div class="warning-item">🌫 <span data-de>{{$a.DewPointWarning}}</span><span data-en>{{$a.DewPointWarningEN}}</span></div>{{end}}
     {{if $a.KpWarning}}<div class="warning-item">🧲 {{$a.KpWarning}}</div>{{end}}
   </div>
   {{end}}
@@ -308,7 +308,7 @@
       <div class="metric-value" style="{{if $a.DewPointOK}}color:var(--ok){{else}}color:var(--warn){{end}}">
         {{printf "%.1f" $a.DewPoint}}<span class="metric-unit">°C</span>
       </div>
-      <div class="metric-sub"><span data-de>Nebel &lt;2°C Abstand</span><span data-en>Fog &lt;2°C margin</span></div>
+      <div class="metric-sub"><span data-de>Nebel/Klareis &lt;2°C Abstand</span><span data-en>Fog/clear ice &lt;2°C margin</span></div>
     </div>
 
     <div class="metric-card {{if $a.KpOK}}ok{{else}}warn{{end}}">
@@ -562,9 +562,17 @@
     var heli   = isHelicopter(ac);
     var emoji  = heli ? '🚁' : ac.category === 9 ? '🛩' : ac.category === 14 ? '🛸' : '✈️';
     var rotate = heli ? '' : 'transform:rotate(' + (ac.truTrack||0) + 'deg);';
+    var lowAlt = !ac.onGround && ac.baroAlt > 0 && ac.baroAlt < 1000;
+    var filter = lowAlt
+      ? 'filter:drop-shadow(0 0 5px rgba(255,140,0,.95)) drop-shadow(0 1px 2px rgba(0,0,0,.8));'
+      : 'filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));';
+    var size   = lowAlt ? '1.4rem' : '1.15rem';
+    var label  = lowAlt
+      ? '<div style="font-size:0.6rem;font-weight:bold;color:#ff8c00;text-align:center;text-shadow:0 0 3px #000,0 0 3px #000;line-height:1.2;margin-top:1px;">' + Math.round(ac.baroAlt) + 'm</div>'
+      : '';
     return L.divIcon({
-      html: '<div style="font-size:1.15rem;line-height:1;' + rotate + 'filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))">' + emoji + '</div>',
-      iconSize: [22, 22], iconAnchor: [11, 11], className: ''
+      html: '<div style="font-size:' + size + ';line-height:1;' + rotate + filter + '">' + emoji + '</div>' + label,
+      iconSize: [22, 26], iconAnchor: [11, 11], className: ''
     });
   }
 

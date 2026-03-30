@@ -39,8 +39,9 @@ type resultsData struct {
 	KpFailed       bool // Kp-Index unavailable
 	DiPULFailed    bool // DiPUL airspace data unavailable
 	TrafficFailed  bool // OpenSky live traffic unavailable
-	HasRedZone     bool // ED-R / ED-D / ED-P at this location
-	HasOrangeZone  bool // CTR / ATZ / ED-LR / MILITARY at this location
+	HasRedZone      bool // ED-R / ED-D / ED-P at this location
+	HasOrangeZone   bool // CTR / ATZ / ED-LR / MILITARY at this location
+	WeatherFlyable  bool // weather-only assessment (ignoring zones)
 	ErrorDE        string
 	ErrorEN        string
 }
@@ -217,6 +218,12 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a := assessment.Assess(fetched.utm, fetched.ow, fetched.kp)
+	weatherFlyable := a.Flyable // capture before zone override
+
+	// Restricted or controlled airspace overrides weather-only assessment.
+	if hasRedZone || hasOrangeZone {
+		a.Flyable = false
+	}
 
 	// Serialize zones to JSON for direct injection into the Leaflet map script.
 	zonesJSON, err := json.Marshal(fetched.zones)
@@ -243,8 +250,9 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		KpFailed:      kpFailed,
 		DiPULFailed:   dipulFailed,
 		TrafficFailed: trafficFailed,
-		HasRedZone:    hasRedZone,
-		HasOrangeZone: hasOrangeZone,
+		HasRedZone:     hasRedZone,
+		HasOrangeZone:  hasOrangeZone,
+		WeatherFlyable: weatherFlyable,
 	}
 
 	if err := h.tmpl.ExecuteTemplate(w, "results.html", data); err != nil {

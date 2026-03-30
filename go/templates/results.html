@@ -211,11 +211,10 @@
     <span class="location-label">📍 {{.Address}}</span>
   </div>
   <div class="controls">
-    {{if $a.Flyable}}
-      <span class="badge badge-ok"><span data-de>FREIGEGEBEN</span><span data-en>CLEARED</span></span>
-    {{else}}
-      <span class="badge badge-warn"><span data-de>NICHT FREIGEGEBEN</span><span data-en>NOT CLEARED</span></span>
-    {{end}}
+    <span id="header-badge" class="badge {{if $a.Flyable}}badge-ok{{else}}badge-warn{{end}}">
+      <span id="header-badge-de" data-de>{{if $a.Flyable}}FREIGEGEBEN{{else}}NICHT FREIGEGEBEN{{end}}</span>
+      <span id="header-badge-en" data-en>{{if $a.Flyable}}CLEARED{{else}}NOT CLEARED{{end}}</span>
+    </span>
     <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark/light mode">☀️</button>
     <div class="lang-toggle">
       <button class="lang-btn" data-l="de" onclick="setLang('de')">DE</button>
@@ -227,11 +226,11 @@
 <div class="dashboard">
 
   {{/* ── Status banner ── */}}
-  <div class="status-banner {{if $a.Flyable}}ok{{else}}warn{{end}}">
-    <span class="status-icon">{{if $a.Flyable}}✅{{else}}🚫{{end}}</span>
+  <div id="status-banner" class="status-banner {{if $a.Flyable}}ok{{else}}warn{{end}}">
+    <span id="status-banner-icon" class="status-icon">{{if $a.Flyable}}✅{{else}}🚫{{end}}</span>
     <div>
-      <div data-de>{{if $a.Flyable}}Betrieb unbedenklich — alle Wetter Grenzwerte eingehalten. Manuelle Überprüfung der Flugzonen empfohlen.{{else}}Betrieb nicht empfohlen — Warnungen vorhanden{{end}}</div>
-      <div data-en>{{if $a.Flyable}}Operation clear — all weather limits within range. Manual check of flight zones recommended.{{else}}Operation not recommended — warnings present{{end}}</div>
+      <div id="status-banner-de" data-de>{{if $a.Flyable}}Betrieb unbedenklich — alle Wetter Grenzwerte eingehalten. Manuelle Überprüfung der Flugzonen empfohlen.{{else}}Betrieb nicht empfohlen — Warnungen vorhanden{{end}}</div>
+      <div id="status-banner-en" data-en>{{if $a.Flyable}}Operation clear — all weather limits within range. Manual check of flight zones recommended.{{else}}Operation not recommended — warnings present{{end}}</div>
     </div>
   </div>
 
@@ -241,7 +240,7 @@
     <div class="warning-item">🚫
       <span data-de>Achtung: Eingeschränkter oder verbotener Luftraum (ED-R/D/P) an diesem Standort. Flug ohne Genehmigung nicht zulässig.</span>
       <span data-en>Warning: Restricted or prohibited airspace (ED-R/D/P) at this location. Flight without authorisation not permitted.</span>
-      <button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">×</button>
+      <button class="dismiss-btn" onclick="dismissZoneWarning(this)" title="Ausblenden / Dismiss">×</button>
     </div>
   </div>
   {{else if .HasOrangeZone}}
@@ -249,7 +248,7 @@
     <div class="warning-item" style="background:rgba(255,149,0,.07);border-color:rgba(255,149,0,.3);color:#e08800">🟠
       <span data-de>Hinweis: Kontrollzone oder Militärgebiet an diesem Standort. Koordination mit zuständiger Stelle erforderlich.</span>
       <span data-en>Notice: Control zone or military area at this location. Coordination with the responsible authority required.</span>
-      <button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">×</button>
+      <button class="dismiss-btn" onclick="dismissZoneWarning(this)" title="Ausblenden / Dismiss">×</button>
     </div>
   </div>
   {{end}}
@@ -301,11 +300,11 @@
   {{/* ── Metric cards ── */}}
   <div class="metrics-row">
 
-    <div class="metric-card metric-card--status {{if $a.Flyable}}ok{{else}}warn{{end}}">
+    <div id="status-card" class="metric-card metric-card--status {{if $a.Flyable}}ok{{else}}warn{{end}}">
       <div class="metric-label" data-de>Flugstatus</div>
       <div class="metric-label" data-en>Flight Status</div>
-      <span class="metric-icon">{{if $a.Flyable}}✅{{else}}🚫{{end}}</span>
-      <div class="metric-value" style="font-size:1.15rem;{{if $a.Flyable}}color:var(--ok){{else}}color:var(--warn){{end}}">
+      <span id="status-icon" class="metric-icon">{{if $a.Flyable}}✅{{else}}🚫{{end}}</span>
+      <div id="status-value" class="metric-value" style="font-size:1.15rem;{{if $a.Flyable}}color:var(--ok){{else}}color:var(--warn){{end}}">
         <span data-de>{{if $a.Flyable}}FREIGABE{{else}}GESPERRT{{end}}</span>
         <span data-en>{{if $a.Flyable}}CLEARED{{else}}BLOCKED{{end}}</span>
       </div>
@@ -552,6 +551,34 @@
   };
 
   // ── Init map — zoom 17 to match original ─────────────────────────────────
+  var weatherFlyable = {{if .WeatherFlyable}}true{{else}}false{{end}};
+
+  window.dismissZoneWarning = function(btn) {
+    btn.closest('.warning-item').remove();
+    if (weatherFlyable) {
+      // Status card
+      var card = document.getElementById('status-card');
+      var icon = document.getElementById('status-icon');
+      var val  = document.getElementById('status-value');
+      card.className = card.className.replace('warn', 'ok');
+      icon.textContent = '✅';
+      val.style.color = 'var(--ok)';
+      val.querySelectorAll('[data-de]').forEach(function(el) { el.textContent = 'FREIGABE'; });
+      val.querySelectorAll('[data-en]').forEach(function(el) { el.textContent = 'CLEARED'; });
+      // Status banner
+      var banner = document.getElementById('status-banner');
+      banner.className = banner.className.replace('warn', 'ok');
+      document.getElementById('status-banner-icon').textContent = '✅';
+      document.getElementById('status-banner-de').textContent = 'Betrieb freigegeben — alle Wetter Grenzwerte eingehalten. Manuelle Überprüfung der Flugzonen weiterhin empfohlen.';
+      document.getElementById('status-banner-en').textContent = 'Operation clear — all weather limits within range. Manual check of flight zones recommended.';
+      // Header badge
+      var badge = document.getElementById('header-badge');
+      badge.className = badge.className.replace('badge-warn', 'badge-ok');
+      document.getElementById('header-badge-de').textContent = 'FREIGEGEBEN';
+      document.getElementById('header-badge-en').textContent = 'CLEARED';
+    }
+  };
+
   var lat = {{.Lat}};
   var lon = {{.Lon}};
   var map = L.map('map').setView([lat, lon], 17);

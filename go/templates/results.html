@@ -235,6 +235,25 @@
     </div>
   </div>
 
+  {{/* ── Airspace zone warnings ── */}}
+  {{if .HasRedZone}}
+  <div class="warnings-section">
+    <div class="warning-item">🚫
+      <span data-de>Achtung: Eingeschränkter oder verbotener Luftraum (ED-R/D/P) an diesem Standort. Flug ohne Genehmigung nicht zulässig.</span>
+      <span data-en>Warning: Restricted or prohibited airspace (ED-R/D/P) at this location. Flight without authorisation not permitted.</span>
+      <button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">×</button>
+    </div>
+  </div>
+  {{else if .HasOrangeZone}}
+  <div class="warnings-section">
+    <div class="warning-item" style="background:rgba(255,149,0,.07);border-color:rgba(255,149,0,.3);color:#e08800">🟠
+      <span data-de>Hinweis: Kontrollzone oder Militärgebiet an diesem Standort. Koordination mit zuständiger Stelle erforderlich.</span>
+      <span data-en>Notice: Control zone or military area at this location. Coordination with the responsible authority required.</span>
+      <button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">×</button>
+    </div>
+  </div>
+  {{end}}
+
   {{/* ── Data availability notices ── */}}
   {{if or .OWFailed .KpFailed .DiPULFailed}}
   <div class="warnings-section">

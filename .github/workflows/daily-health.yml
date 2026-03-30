@@ -1,0 +1,16 @@
+name: Daily Health Check
+
+on:
+  schedule:
+    - cron: "0 7 * * *"   # 07:00 UTC daily
+  workflow_dispatch:        # allow manual runs
+
+jobs:
+  smoke:
+    name: Smoke tests — drohnenwetter.de
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run smoke tests
+        run: bash checks/smoke.sh https://drohnenwetter.de

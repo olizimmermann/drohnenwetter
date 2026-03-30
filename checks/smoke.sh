@@ -4,6 +4,7 @@
 # Exits 0 if all checks pass, 1 otherwise.
 
 BASE="${1:-https://drohnenwetter.de}"
+UA="drohnenwetter-healthcheck/1.0"
 PASS=0
 FAIL=0
 
@@ -13,7 +14,7 @@ fail() { echo "  FAIL  $1"; ((FAIL++)); }
 check_status() {
   local label="$1" url="$2" expected="${3:-200}"
   local status
-  status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$url")
+  status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 -A "$UA" "$url")
   if [[ "$status" == "$expected" ]]; then
     ok "$label (HTTP $status)"
   else
@@ -24,7 +25,7 @@ check_status() {
 check_body() {
   local label="$1" url="$2" pattern="$3"
   local body
-  body=$(curl -s --max-time 15 "$url")
+  body=$(curl -s --max-time 15 -A "$UA" "$url")
   if echo "$body" | grep -q "$pattern"; then
     ok "$label"
   else
@@ -35,7 +36,7 @@ check_body() {
 check_json() {
   local label="$1" url="$2"
   local body
-  body=$(curl -s --max-time 15 "$url")
+  body=$(curl -s --max-time 15 -A "$UA" "$url")
   if echo "$body" | python3 -m json.tool > /dev/null 2>&1; then
     ok "$label (valid JSON)"
   else
@@ -59,7 +60,7 @@ check_status "/zone-info Berlin" "$BASE/zone-info?lat=52.5200&lon=13.4050" 200
 check_json   "/zone-info returns JSON" "$BASE/zone-info?lat=52.5200&lon=13.4050"
 
 # 4. Full results (Berlin address) — tests HERE + weather APIs
-RESULT_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+RESULT_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -A "$UA" \
   -X POST "$BASE/results" \
   -d "address=Alexanderplatz+1%2C+Berlin")
 if [[ "$RESULT_STATUS" == "200" ]]; then

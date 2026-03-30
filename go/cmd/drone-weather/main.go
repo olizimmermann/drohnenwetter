@@ -144,6 +144,12 @@ func main() {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 		}
 	})
+	mux.HandleFunc("/datenschutz", func(w http.ResponseWriter, r *http.Request) {
+		if err := tmpl.ExecuteTemplate(w, "datenschutz.html", struct{ Address string }{}); err != nil {
+			log.Printf("[datenschutz] template error: %v", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+		}
+	})
 	mux.Handle("/track", rateLimitMiddleware(http.HandlerFunc(handler.TrackHandler)))
 	mux.Handle("/traffic", rateLimitMiddleware(http.HandlerFunc(handler.TrafficHandler)))
 	mux.Handle("/", rateLimitMiddleware(handler.NewHomeHandler(tmpl)))

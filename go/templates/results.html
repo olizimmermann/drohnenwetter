@@ -657,6 +657,52 @@
     });
   }
 
+  // ── WMS GetFeatureInfo on map click ──────────────────────────────────────
+  var zoneInfoPopup = L.popup({maxWidth: 320});
+
+  function formatZoneFeatures(features) {
+    return features.map(function(f) {
+      var p = f.properties || {};
+      var name = p.name || p.designator || (f.id || '').split('.')[0];
+      var type = (p.type_code || '').replace(/_/g, ' ');
+      var lower = p.lower_limit_altitude != null
+        ? p.lower_limit_altitude + '\u202f' + (p.lower_limit_unit || '') + ' ' + (p.lower_limit_alt_ref || '')
+        : '';
+      var upper = p.upper_limit_altitude != null
+        ? p.upper_limit_altitude + '\u202f' + (p.upper_limit_unit || '') + ' ' + (p.upper_limit_alt_ref || '')
+        : '';
+      var html = '<strong>' + escapeHtml(name) + '</strong>';
+      if (type) html += '&nbsp;<em style="color:var(--muted);font-size:.85em">' + escapeHtml(type) + '</em>';
+      if (lower || upper) html += '<br><span style="font-size:.85em">' + escapeHtml(lower) + (upper ? ' \u2013 ' + escapeHtml(upper) : '') + '</span>';
+      if (p.legal_ref) html += '<br><span style="font-size:.75em;color:var(--muted)">' + escapeHtml(p.legal_ref) + '</span>';
+      return html;
+    }).join('<hr style="margin:.4rem 0;border:none;border-top:1px solid var(--border)">');
+  }
+
+  map.on('click', function(e) {
+    zoneInfoPopup
+      .setLatLng(e.latlng)
+      .setContent('<span style="color:var(--muted);font-size:.85em">' + (localStorage.getItem('lang') === 'en' ? 'Loading…' : 'Lade…') + '</span>')
+      .openOn(map);
+
+    fetch('/zone-info?lat=' + e.latlng.lat + '&lon=' + e.latlng.lng)
+      .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function(data) {
+        if (!data.features || data.features.length === 0) {
+          zoneInfoPopup.setContent(
+            '<span style="color:var(--muted);font-size:.85em">' +
+            (localStorage.getItem('lang') === 'en' ? 'No restricted zones at this point.' : 'Keine Zonen an diesem Punkt.') +
+            '</span>'
+          );
+          return;
+        }
+        zoneInfoPopup.setContent(formatZoneFeatures(data.features));
+      })
+      .catch(function() {
+        zoneInfoPopup.setContent('<span style="color:var(--warn);font-size:.85em">⚠ Fehler / Error</span>');
+      });
+  });
+
   // ── Legend Leaflet control with real WMS GetLegendGraphic icons ───────────
   var LegendControl = L.Control.extend({
     options: {position: 'bottomright'},

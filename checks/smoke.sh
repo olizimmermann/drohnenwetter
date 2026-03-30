@@ -4,7 +4,7 @@
 # Exits 0 if all checks pass, 1 otherwise.
 
 BASE="${1:-https://drohnenwetter.de}"
-UA="drohnenwetter-healthcheck/1.0"
+UA="Mozilla/5.0 (compatible; drohnenwetter-healthcheck/1.0)"
 PASS=0
 FAIL=0
 

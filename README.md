@@ -2,6 +2,8 @@
 
 Real-time weather and airspace safety assessment for **DJI Matrice 30T (M30T)** drone operators in Germany.
 
+[![Daily Health Check](https://github.com/olizimmermann/drone-weather/actions/workflows/daily-health.yml/badge.svg)](https://github.com/olizimmermann/drone-weather/actions/workflows/daily-health.yml)
+
 ![Drone Weather](SafeFlight.png)
 
 ---

@@ -752,7 +752,7 @@
     var rows = sorted.map(function(f) {
       var layer = featureLayer(f);
       var p = f.properties || {};
-      var name = p.name || p.designator || layer;
+      var name = p.name || p.designator || (p.type_code || layer).replace(/_/g, '\u202f');
       var type = (p.type_code || '').replace(/_/g, '\u202f');
       var lower = p.lower_limit_altitude != null
         ? p.lower_limit_altitude + '\u202f' + (p.lower_limit_unit || '') + '\u202f' + (p.lower_limit_alt_ref || '')

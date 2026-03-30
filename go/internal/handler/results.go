@@ -108,6 +108,25 @@ func parseCoords(s string) (float64, float64, bool) {
 	return lat, lon, true
 }
 
+func clientIP(r *http.Request) string {
+	if ip := r.Header.Get("Cf-Connecting-Ip"); ip != "" {
+		return ip
+	}
+	if ip := r.Header.Get("X-Forwarded-For"); ip != "" {
+		return strings.SplitN(ip, ",", 2)[0]
+	}
+	return r.RemoteAddr
+}
+
+func logLookup(mode string, geo *api.GeocodeResult, ip string) {
+	street := geo.Street
+	if geo.HouseNumber != "" {
+		street += " " + geo.HouseNumber
+	}
+	log.Printf("[lookup] mode=%s street=%q city=%q zip=%q lat=%.6f lon=%.6f ip=%s",
+		mode, street, geo.City, geo.PostalCode, geo.Lat, geo.Lon, ip)
+}
+
 func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -138,7 +157,7 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Title: fmt.Sprintf("%.5f, %.5f", lat, lon),
 			}
 		}
-		log.Printf("[results] GPS %.6f, %.6f → %q", lat, lon, geo.Title)
+		logLookup("gps", geo, clientIP(r))
 	} else {
 		// Address path: forward geocode (or coordinate paste detection)
 		address := r.FormValue("address")
@@ -154,7 +173,6 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var err error
 		if lat, lon, ok := parseCoords(address); ok {
 			// Looks like pasted coordinates — use reverse geocode
-			log.Printf("[results] coordinate input detected: %.6f, %.6f", lat, lon)
 			geo, err = api.ReverseGeocode(lat, lon, h.hereAPIKey)
 			if err != nil {
 				log.Printf("[results] revgeocode error: %v", err)
@@ -164,6 +182,7 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					Title: fmt.Sprintf("%.5f, %.5f", lat, lon),
 				}
 			}
+			logLookup("coords", geo, clientIP(r))
 		} else {
 			// Normal address — forward geocode
 			geo, err = api.Geocode(address, h.hereAPIKey)
@@ -172,8 +191,8 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				h.renderError(w, "Adresse nicht gefunden. Bitte prüfen Sie die Eingabe.", "Address not found. Please check your input.")
 				return
 			}
+			logLookup("address", geo, clientIP(r))
 		}
-		log.Printf("[results] resolved %q → %.6f, %.6f", geo.Title, geo.Lat, geo.Lon)
 	}
 
 	fetched := h.fetchAll(geo.Lat, geo.Lon, geo.City)

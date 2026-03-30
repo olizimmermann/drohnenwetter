@@ -7,10 +7,13 @@ import (
 )
 
 type GeocodeResult struct {
-	Lat   float64
-	Lon   float64
-	Title string
-	City  string // from HERE address.city — used for METAR airport lookup
+	Lat         float64
+	Lon         float64
+	Title       string
+	City        string // from HERE address.city — used for METAR airport lookup
+	Street      string
+	HouseNumber string
+	PostalCode  string
 }
 
 type hereResponse struct {
@@ -58,10 +61,13 @@ func ReverseGeocode(lat, lon float64, hereAPIKey string) (*GeocodeResult, error)
 
 	item := resp.Items[0]
 	return &GeocodeResult{
-		Lat:   lat,
-		Lon:   lon,
-		Title: item.Title,
-		City:  item.Address.City,
+		Lat:         lat,
+		Lon:         lon,
+		Title:       item.Title,
+		City:        item.Address.City,
+		Street:      item.Address.Street,
+		HouseNumber: item.Address.HouseNumber,
+		PostalCode:  item.Address.PostalCode,
 	}, nil
 }
 
@@ -96,9 +102,12 @@ func Geocode(address, hereAPIKey string) (*GeocodeResult, error) {
 
 	item := resp.Items[0]
 	return &GeocodeResult{
-		Lat:   item.Position.Lat,
-		Lon:   item.Position.Lng,
-		Title: item.Title,
-		City:  item.Address.City,
+		Lat:         item.Position.Lat,
+		Lon:         item.Position.Lng,
+		Title:       item.Title,
+		City:        item.Address.City,
+		Street:      item.Address.Street,
+		HouseNumber: item.Address.HouseNumber,
+		PostalCode:  item.Address.PostalCode,
 	}, nil
 }

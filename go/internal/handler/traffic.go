@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -14,7 +15,10 @@ import (
 func TrafficHandler(w http.ResponseWriter, r *http.Request) {
 	lat, errLat := strconv.ParseFloat(r.URL.Query().Get("lat"), 64)
 	lon, errLon := strconv.ParseFloat(r.URL.Query().Get("lon"), 64)
-	if errLat != nil || errLon != nil || lat < -90 || lat > 90 || lon < -180 || lon > 180 {
+	if errLat != nil || errLon != nil ||
+		math.IsNaN(lat) || math.IsInf(lat, 0) ||
+		math.IsNaN(lon) || math.IsInf(lon, 0) ||
+		lat < -90 || lat > 90 || lon < -180 || lon > 180 {
 		http.Error(w, "invalid coordinates", http.StatusBadRequest)
 		return
 	}

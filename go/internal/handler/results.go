@@ -108,16 +108,6 @@ func parseCoords(s string) (float64, float64, bool) {
 	return lat, lon, true
 }
 
-func clientIP(r *http.Request) string {
-	if ip := r.Header.Get("Cf-Connecting-Ip"); ip != "" {
-		return ip
-	}
-	if ip := r.Header.Get("X-Forwarded-For"); ip != "" {
-		return strings.SplitN(ip, ",", 2)[0]
-	}
-	return r.RemoteAddr
-}
-
 func logLookup(mode string, geo *api.GeocodeResult, ip string) {
 	street := geo.Street
 	if geo.HouseNumber != "" {

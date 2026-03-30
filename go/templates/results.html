@@ -680,12 +680,15 @@
   }
 
   map.on('click', function(e) {
+    var clat = e.latlng.lat, clon = e.latlng.lng;
+    if (!isFinite(clat) || !isFinite(clon) || clat < -90 || clat > 90 || clon < -180 || clon > 180) return;
+
     zoneInfoPopup
       .setLatLng(e.latlng)
       .setContent('<span style="color:var(--muted);font-size:.85em">' + (localStorage.getItem('lang') === 'en' ? 'Loading…' : 'Lade…') + '</span>')
       .openOn(map);
 
-    fetch('/zone-info?lat=' + e.latlng.lat + '&lon=' + e.latlng.lng)
+    fetch('/zone-info?lat=' + clat + '&lon=' + clon)
       .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
       .then(function(data) {
         if (!data.features || data.features.length === 0) {

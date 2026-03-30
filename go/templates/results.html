@@ -462,41 +462,50 @@
 (function() {
   var WMS_BASE  = 'https://uas-betrieb.de/geoservices/dipul/wms';
   var WMS_OWS   = 'https://uas-betrieb.de/geoservices/dipul/ows';
+  // WMS_LAYERS ordered least→most restrictive: last layer renders on top.
   var WMS_LAYERS = [
-    { layer: 'dipul:bahnanlagen',                     de: 'Bahnanlagen',                       en: 'Railway Facilities' },
-    { layer: 'dipul:behoerden',                       de: 'Behörden',                          en: 'Authorities' },
+    // Geography / infrastructure (bottom)
+    { layer: 'dipul:seewasserstrassen',               de: 'Seewasserstraßen',                  en: 'Sea Waterways' },
     { layer: 'dipul:binnenwasserstrassen',            de: 'Binnenwasserstraßen',               en: 'Inland Waterways' },
+    { layer: 'dipul:schifffahrtsanlagen',             de: 'Schifffahrtsanlagen',               en: 'Shipping Facilities' },
+    { layer: 'dipul:bahnanlagen',                     de: 'Bahnanlagen',                       en: 'Railway Facilities' },
     { layer: 'dipul:bundesautobahnen',                de: 'Bundesautobahnen',                  en: 'Federal Motorways' },
     { layer: 'dipul:bundesstrassen',                  de: 'Bundesstraßen',                     en: 'Federal Roads' },
-    { layer: 'dipul:diplomatische_vertretungen',      de: 'Diplomatische Vertretungen',        en: 'Diplomatic Representations' },
-    { layer: 'dipul:ffh-gebiete',                      de: 'FFH-Gebiete',                       en: 'FFH Areas' },
-    { layer: 'dipul:flugbeschraenkungsgebiete',       de: 'Flugbeschränkungsgebiete',          en: 'Flight Restriction Areas' },
-    { layer: 'dipul:flughaefen',                      de: 'Flughäfen',                         en: 'Airports' },
-    { layer: 'dipul:flugplaetze',                     de: 'Flugplätze',                        en: 'Airfields' },
-    { layer: 'dipul:freibaeder',                      de: 'Freibäder',                         en: 'Open-air Pools' },
-    { layer: 'dipul:haengegleiter',                   de: 'Hängegleiter',                      en: 'Hang Gliders' },
-    // { layer: 'dipul:inaktive_temporaere_betriebseinschraenkungen', de: 'Inaktive Temp. Einschränkungen', en: 'Inactive Temp. Restrictions' },
-    { layer: 'dipul:industrieanlagen',                de: 'Industrieanlagen',                  en: 'Industrial Facilities' },
-    { layer: 'dipul:internationale_organisationen',   de: 'Internationale Organisationen',     en: 'International Organizations' },
-    { layer: 'dipul:justizvollzugsanstalten',         de: 'Justizvollzugsanstalten',           en: 'Prisons' },
-    { layer: 'dipul:kontrollzonen',                   de: 'Kontrollzonen',                     en: 'Control Zones' },
-    { layer: 'dipul:kraftwerke',                      de: 'Kraftwerke',                        en: 'Power Plants' },
-    { layer: 'dipul:krankenhaeuser',                  de: 'Krankenhäuser',                     en: 'Hospitals' },
-    { layer: 'dipul:labore',                          de: 'Labore',                            en: 'Laboratories' },
-    { layer: 'dipul:militaerische_anlagen',           de: 'Militärische Anlagen',              en: 'Military Facilities' },
-    { layer: 'dipul:modellflugplaetze',               de: 'Modellflugplätze',                  en: 'Model Airfields' },
+    // Inactive restrictions
+    { layer: 'dipul:inaktive_temporaere_betriebseinschraenkungen', de: 'Inaktive Temp. Einschränkungen', en: 'Inactive Temp. Restrictions' },
+    // Nature / environment
+    { layer: 'dipul:ffh-gebiete',                     de: 'FFH-Gebiete',                       en: 'FFH Areas' },
+    { layer: 'dipul:vogelschutzgebiete',              de: 'Vogelschutzgebiete',                en: 'Bird Protection Areas' },
     { layer: 'dipul:nationalparks',                   de: 'Nationalparks',                     en: 'National Parks' },
     { layer: 'dipul:naturschutzgebiete',              de: 'Naturschutzgebiete',                en: 'Nature Reserves' },
-    { layer: 'dipul:polizei',                         de: 'Polizei',                           en: 'Police' },
-    { layer: 'dipul:schifffahrtsanlagen',             de: 'Schifffahrtsanlagen',               en: 'Shipping Facilities' },
-    { layer: 'dipul:seewasserstrassen',               de: 'Seewasserstraßen',                  en: 'Sea Waterways' },
-    { layer: 'dipul:sicherheitsbehoerden',            de: 'Sicherheitsbehörden',               en: 'Security Authorities' },
+    // Infrastructure / utilities
     { layer: 'dipul:stromleitungen',                  de: 'Stromleitungen',                    en: 'Power Lines' },
-    { layer: 'dipul:temporaere_betriebseinschraenkungen', de: 'Temporäre Einschränkungen',     en: 'Temporary Restrictions' },
-    { layer: 'dipul:umspannwerke',                    de: 'Umspannwerke',                      en: 'Transformer Stations' },
-    { layer: 'dipul:vogelschutzgebiete',              de: 'Vogelschutzgebiete',                en: 'Bird Protection Areas' },
     { layer: 'dipul:windkraftanlagen',                de: 'Windkraftanlagen',                  en: 'Wind Turbines' },
+    { layer: 'dipul:umspannwerke',                    de: 'Umspannwerke',                      en: 'Transformer Stations' },
     { layer: 'dipul:wohngrundstuecke',                de: 'Wohngrundstücke',                   en: 'Residential Properties' },
+    { layer: 'dipul:freibaeder',                      de: 'Freibäder',                         en: 'Open-air Pools' },
+    { layer: 'dipul:industrieanlagen',                de: 'Industrieanlagen',                  en: 'Industrial Facilities' },
+    { layer: 'dipul:kraftwerke',                      de: 'Kraftwerke',                        en: 'Power Plants' },
+    { layer: 'dipul:labore',                          de: 'Labore',                            en: 'Laboratories' },
+    { layer: 'dipul:krankenhaeuser',                  de: 'Krankenhäuser',                     en: 'Hospitals' },
+    // Authorities / security
+    { layer: 'dipul:behoerden',                       de: 'Behörden',                          en: 'Authorities' },
+    { layer: 'dipul:justizvollzugsanstalten',         de: 'Justizvollzugsanstalten',           en: 'Prisons' },
+    { layer: 'dipul:polizei',                         de: 'Polizei',                           en: 'Police' },
+    { layer: 'dipul:sicherheitsbehoerden',            de: 'Sicherheitsbehörden',               en: 'Security Authorities' },
+    { layer: 'dipul:internationale_organisationen',   de: 'Internationale Organisationen',     en: 'International Organizations' },
+    { layer: 'dipul:diplomatische_vertretungen',      de: 'Diplomatische Vertretungen',        en: 'Diplomatic Representations' },
+    // Military
+    { layer: 'dipul:militaerische_anlagen',           de: 'Militärische Anlagen',              en: 'Military Facilities' },
+    // Aviation
+    { layer: 'dipul:haengegleiter',                   de: 'Hängegleiter',                      en: 'Hang Gliders' },
+    { layer: 'dipul:modellflugplaetze',               de: 'Modellflugplätze',                  en: 'Model Airfields' },
+    { layer: 'dipul:flugplaetze',                     de: 'Flugplätze',                        en: 'Airfields' },
+    { layer: 'dipul:flughaefen',                      de: 'Flughäfen',                         en: 'Airports' },
+    // Airspace — most restrictive, rendered on top
+    { layer: 'dipul:temporaere_betriebseinschraenkungen', de: 'Temporäre Einschränkungen',     en: 'Temporary Restrictions' },
+    { layer: 'dipul:kontrollzonen',                   de: 'Kontrollzonen',                     en: 'Control Zones' },
+    { layer: 'dipul:flugbeschraenkungsgebiete',       de: 'Flugbeschränkungsgebiete',          en: 'Flight Restriction Areas' },
   ];
 
   // Zone colour palette for API-sourced GeoJSON overlays
@@ -660,23 +669,103 @@
   // ── WMS GetFeatureInfo on map click ──────────────────────────────────────
   var zoneInfoPopup = L.popup({maxWidth: 320});
 
+  // Priority: lower = more restrictive = shown first
+  var ZONE_PRIORITY = {
+    'flugbeschraenkungsgebiete': 1,
+    'kontrollzonen': 2,
+    'temporaere_betriebseinschraenkungen': 3,
+    'flughaefen': 4,
+    'flugplaetze': 5,
+    'militaerische_anlagen': 6,
+    'modellflugplaetze': 7,
+    'haengegleiter': 8,
+    'diplomatische_vertretungen': 9,
+    'internationale_organisationen': 10,
+    'sicherheitsbehoerden': 11,
+    'polizei': 12,
+    'behoerden': 13,
+    'justizvollzugsanstalten': 14,
+    'kraftwerke': 15,
+    'labore': 16,
+    'krankenhaeuser': 17,
+    'freibaeder': 18,
+    'industrieanlagen': 19,
+    'umspannwerke': 20,
+    'wohngrundstuecke': 21,
+    'windkraftanlagen': 22,
+    'stromleitungen': 23,
+    'naturschutzgebiete': 24,
+    'nationalparks': 25,
+    'vogelschutzgebiete': 26,
+    'ffh-gebiete': 27,
+    'inaktive_temporaere_betriebseinschraenkungen': 28,
+  };
+  var ZONE_ICON = {
+    'flugbeschraenkungsgebiete': '🔴',
+    'kontrollzonen': '🔴',
+    'temporaere_betriebseinschraenkungen': '🟠',
+    'flughaefen': '🟠',
+    'flugplaetze': '🟠',
+    'militaerische_anlagen': '🟠',
+    'modellflugplaetze': '🟡',
+    'haengegleiter': '🟡',
+    'diplomatische_vertretungen': '🔵',
+    'internationale_organisationen': '🔵',
+    'sicherheitsbehoerden': '🔵',
+    'polizei': '🔵',
+    'behoerden': '🔵',
+    'justizvollzugsanstalten': '🔵',
+    'kraftwerke': '🟣',
+    'labore': '🟣',
+    'krankenhaeuser': '🟣',
+    'freibaeder': '🟣',
+    'industrieanlagen': '🟣',
+    'umspannwerke': '🟣',
+    'wohngrundstuecke': '⚪',
+    'windkraftanlagen': '⚪',
+    'stromleitungen': '⚪',
+    'naturschutzgebiete': '🟢',
+    'nationalparks': '🟢',
+    'vogelschutzgebiete': '🟢',
+    'ffh-gebiete': '🟢',
+    'inaktive_temporaere_betriebseinschraenkungen': '⚫',
+  };
+
+  function featureLayer(f) {
+    return (f.id || '').split('.')[0];
+  }
+
   function formatZoneFeatures(features) {
-    return features.map(function(f) {
+    var lang = localStorage.getItem('lang') || 'de';
+    var sorted = features.slice().sort(function(a, b) {
+      var pa = ZONE_PRIORITY[featureLayer(a)] || 99;
+      var pb = ZONE_PRIORITY[featureLayer(b)] || 99;
+      return pa - pb;
+    });
+    var header = '<div style="font-size:.75em;color:var(--muted);margin-bottom:.5rem">' +
+      sorted.length + '\u202f' + (lang === 'en' ? 'zone(s) at this point' : 'Zone(n) an diesem Punkt') +
+      '</div>';
+    var rows = sorted.map(function(f) {
+      var layer = featureLayer(f);
       var p = f.properties || {};
-      var name = p.name || p.designator || (f.id || '').split('.')[0];
-      var type = (p.type_code || '').replace(/_/g, ' ');
+      var name = p.name || p.designator || layer;
+      var type = (p.type_code || '').replace(/_/g, '\u202f');
       var lower = p.lower_limit_altitude != null
-        ? p.lower_limit_altitude + '\u202f' + (p.lower_limit_unit || '') + ' ' + (p.lower_limit_alt_ref || '')
+        ? p.lower_limit_altitude + '\u202f' + (p.lower_limit_unit || '') + '\u202f' + (p.lower_limit_alt_ref || '')
         : '';
       var upper = p.upper_limit_altitude != null
-        ? p.upper_limit_altitude + '\u202f' + (p.upper_limit_unit || '') + ' ' + (p.upper_limit_alt_ref || '')
+        ? p.upper_limit_altitude + '\u202f' + (p.upper_limit_unit || '') + '\u202f' + (p.upper_limit_alt_ref || '')
         : '';
-      var html = '<strong>' + escapeHtml(name) + '</strong>';
-      if (type) html += '&nbsp;<em style="color:var(--muted);font-size:.85em">' + escapeHtml(type) + '</em>';
-      if (lower || upper) html += '<br><span style="font-size:.85em">' + escapeHtml(lower) + (upper ? ' \u2013 ' + escapeHtml(upper) : '') + '</span>';
-      if (p.legal_ref) html += '<br><span style="font-size:.75em;color:var(--muted)">' + escapeHtml(p.legal_ref) + '</span>';
+      var icon = ZONE_ICON[layer] || '⚪';
+      var html = icon + '\u2002<strong>' + escapeHtml(name) + '</strong>';
+      if (type) html += '&nbsp;<em style="color:var(--muted);font-size:.82em">' + escapeHtml(type) + '</em>';
+      if (lower || upper) html += '<br><span style="font-size:.82em;padding-left:1.4em">' +
+        escapeHtml(lower) + (upper ? ' \u2013 ' + escapeHtml(upper) : '') + '</span>';
+      if (p.legal_ref) html += '<br><span style="font-size:.75em;color:var(--muted);padding-left:1.4em">' +
+        escapeHtml(p.legal_ref) + '</span>';
       return html;
     }).join('<hr style="margin:.4rem 0;border:none;border-top:1px solid var(--border)">');
+    return header + rows;
   }
 
   map.on('click', function(e) {

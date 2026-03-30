@@ -6,25 +6,45 @@ import (
 	"strings"
 )
 
+// zoneInfoLayers are queried on map click via GetFeatureInfo.
+// Order: least restrictive first, most restrictive last
+// (WMS renders last layer on top; same order used for priority sorting client-side).
 var zoneInfoLayers = strings.Join([]string{
+	// Nature / environment (least restrictive)
+	"dipul:ffh-gebiete",
+	"dipul:vogelschutzgebiete",
+	"dipul:nationalparks",
+	"dipul:naturschutzgebiete",
+	// Inactive restrictions
+	"dipul:inaktive_temporaere_betriebseinschraenkungen",
+	// Infrastructure / facilities
+	"dipul:stromleitungen",
+	"dipul:windkraftanlagen",
+	"dipul:umspannwerke",
+	"dipul:wohngrundstuecke",
+	"dipul:freibaeder",
+	"dipul:industrieanlagen",
+	"dipul:kraftwerke",
+	"dipul:labore",
+	"dipul:krankenhaeuser",
+	// Authorities / security
+	"dipul:behoerden",
+	"dipul:justizvollzugsanstalten",
+	"dipul:polizei",
+	"dipul:sicherheitsbehoerden",
+	"dipul:internationale_organisationen",
+	"dipul:diplomatische_vertretungen",
+	// Military
+	"dipul:militaerische_anlagen",
+	// Aviation (approach)
+	"dipul:haengegleiter",
+	"dipul:modellflugplaetze",
+	"dipul:flugplaetze",
+	"dipul:flughaefen",
+	// Airspace (most restrictive — on top)
+	"dipul:temporaere_betriebseinschraenkungen",
 	"dipul:kontrollzonen",
 	"dipul:flugbeschraenkungsgebiete",
-	"dipul:flughaefen",
-	"dipul:flugplaetze",
-	"dipul:modellflugplaetze",
-	"dipul:haengegleiter",
-	"dipul:militaerische_anlagen",
-	"dipul:temporaere_betriebseinschraenkungen",
-	"dipul:inaktive_temporaere_betriebseinschraenkungen",
-	"dipul:naturschutzgebiete",
-	"dipul:nationalparks",
-	"dipul:vogelschutzgebiete",
-	"dipul:ffh-gebiete",
-	"dipul:wohngrundstuecke",
-	"dipul:industrieanlagen",
-	"dipul:krankenhaeuser",
-	"dipul:windkraftanlagen",
-	"dipul:stromleitungen",
 }, ",")
 
 // FetchZoneInfo queries the DiPUL WMS GetFeatureInfo endpoint for a given

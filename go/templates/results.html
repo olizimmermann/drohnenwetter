@@ -37,6 +37,7 @@
     .detail-grid { grid-template-columns: 1fr; }
     .topbar { padding: .55rem .75rem; }
     .location-label { font-size: 12px; }
+    .metric-card--status { display: none; }
   }
 
   /* ── Status banner ── */
@@ -47,6 +48,7 @@
   }
   .status-banner.ok   { background: rgba(0,212,255,.07); border: 1px solid rgba(0,212,255,.25); color: var(--ok); }
   .status-banner.warn { background: rgba(255,71,87,.07);  border: 1px solid rgba(255,71,87,.25);  color: var(--warn); }
+  .status-banner.info { background: rgba(0,153,187,.08); border: 1px solid rgba(0,153,187,.28); color: var(--ok); }
   .status-icon { font-size: 1.4rem; }
 
   /* ── Metric cards ── */
@@ -59,9 +61,10 @@
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 1rem 1.1rem;
   }
-  .metric-card.ok   { border-top: 3px solid var(--ok); }
-  .metric-card.warn { border-top: 3px solid var(--warn); }
+  .metric-card.ok      { border-top: 3px solid var(--ok); }
+  .metric-card.warn    { border-top: 3px solid var(--warn); }
   .metric-card.neutral { border-top: 3px solid var(--border); }
+  .metric-card.info    { border-top: 3px solid var(--ok); }
   .metric-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .35rem; }
   .metric-value { font-size: 1.6rem; font-weight: 700; line-height: 1; }
   .metric-unit  { font-size: 12px; color: var(--muted); margin-left: 2px; }
@@ -220,8 +223,8 @@
   <div class="status-banner {{if $a.Flyable}}ok{{else}}warn{{end}}">
     <span class="status-icon">{{if $a.Flyable}}✅{{else}}🚫{{end}}</span>
     <div>
-      <div data-de>{{if $a.Flyable}}Betrieb unbedenklich — alle Grenzwerte eingehalten{{else}}Betrieb nicht empfohlen — Warnungen vorhanden{{end}}</div>
-      <div data-en>{{if $a.Flyable}}Operation clear — all limits within range{{else}}Operation not recommended — warnings present{{end}}</div>
+      <div data-de>{{if $a.Flyable}}Betrieb unbedenklich — alle Wetter Grenzwerte eingehalten. Manuelle Überprüfung der Flugzonen empfohlen.{{else}}Betrieb nicht empfohlen — Warnungen vorhanden{{end}}</div>
+      <div data-en>{{if $a.Flyable}}Operation clear — all weather limits within range. Manual check of flight zones recommended.{{else}}Operation not recommended — warnings present{{end}}</div>
     </div>
   </div>
 
@@ -246,6 +249,12 @@
       <span data-en>Airspace data unavailable (DiPUL) – please check airspace manually.</span>
     </div>
     {{end}}
+    {{if .TrafficFailed}}
+    <div class="data-warning-item">⚠️
+      <span data-de>Flugverkehr-Daten nicht verfügbar (OpenSky) – Luftverkehr bitte manuell prüfen.</span>
+      <span data-en>Live traffic data unavailable (OpenSky) – check air traffic manually.</span>
+    </div>
+    {{end}}
   </div>
   {{end}}
 
@@ -254,7 +263,7 @@
   <div class="warnings-section">
     {{range $a.WindWarnings}}<div class="warning-item">💨 {{.}}</div>{{end}}
     {{range $a.TempWarnings}}<div class="warning-item">🌡 {{.}}</div>{{end}}
-    {{if $a.DewPointWarning}}<div class="warning-item">🌫 {{$a.DewPointWarning}}</div>{{end}}
+    {{if $a.DewPointWarning}}<div class="warning-item">🌫 <span data-de>{{$a.DewPointWarning}}</span><span data-en>{{$a.DewPointWarningEN}}</span></div>{{end}}
     {{if $a.KpWarning}}<div class="warning-item">🧲 {{$a.KpWarning}}</div>{{end}}
   </div>
   {{end}}
@@ -262,12 +271,12 @@
   {{/* ── Metric cards ── */}}
   <div class="metrics-row">
 
-    <div class="metric-card {{if $a.Flyable}}ok{{else}}warn{{end}}">
+    <div class="metric-card metric-card--status {{if $a.Flyable}}ok{{else}}warn{{end}}">
       <div class="metric-label" data-de>Flugstatus</div>
       <div class="metric-label" data-en>Flight Status</div>
       <span class="metric-icon">{{if $a.Flyable}}✅{{else}}🚫{{end}}</span>
       <div class="metric-value" style="font-size:1.15rem;{{if $a.Flyable}}color:var(--ok){{else}}color:var(--warn){{end}}">
-        <span data-de>{{if $a.Flyable}}FREIGEGEBEN{{else}}GESPERRT{{end}}</span>
+        <span data-de>{{if $a.Flyable}}FREIGABE{{else}}GESPERRT{{end}}</span>
         <span data-en>{{if $a.Flyable}}CLEARED{{else}}BLOCKED{{end}}</span>
       </div>
     </div>
@@ -299,7 +308,7 @@
       <div class="metric-value" style="{{if $a.DewPointOK}}color:var(--ok){{else}}color:var(--warn){{end}}">
         {{printf "%.1f" $a.DewPoint}}<span class="metric-unit">°C</span>
       </div>
-      <div class="metric-sub"><span data-de>Nebel &lt;2°C Abstand</span><span data-en>Fog &lt;2°C margin</span></div>
+      <div class="metric-sub"><span data-de>Nebel/Klareis &lt;2°C Abstand</span><span data-en>Fog/clear ice &lt;2°C margin</span></div>
     </div>
 
     <div class="metric-card {{if $a.KpOK}}ok{{else}}warn{{end}}">
@@ -311,12 +320,29 @@
       <div class="metric-sub"><span data-de>max. 4 (GPS-Störung)</span><span data-en>max. 4 (GPS interference)</span></div>
     </div>
 
-    <div class="metric-card neutral">
+    <div class="metric-card info">
       <div class="metric-label" data-de>Bewölkung</div>
       <div class="metric-label" data-en>Cloud Cover</div>
       <span class="metric-icon">☁️</span>
       <div class="metric-value" style="color:var(--text)">{{printf "%.0f" $a.CloudCover}}<span class="metric-unit">%</span></div>
       <div class="metric-sub">{{printf "%.2f" $a.RainMM}} mm · {{printf "%.2f" $a.SnowCM}} cm</div>
+    </div>
+
+    {{$airborne := 0}}{{range .Traffic}}{{if not .OnGround}}{{$airborne = add $airborne 1}}{{end}}{{end}}
+    <div id="traffic-card" class="metric-card {{if gt $airborne 0}}warn{{else}}ok{{end}}">
+      <div class="metric-label" data-de>Luftverkehr (~11km)</div>
+      <div class="metric-label" data-en>Air Traffic (~11km)</div>
+      <span class="metric-icon">✈️</span>
+      <div id="traffic-count" class="metric-value" style="{{if gt $airborne 0}}color:var(--warn){{else}}color:var(--ok){{end}}">
+        {{$airborne}}
+      </div>
+      <div class="metric-sub">
+        {{if .TrafficFailed}}
+          <span data-de>nicht verfügbar</span><span data-en>unavailable</span>
+        {{else}}
+          <span data-de>Luftfahrzeuge in der Luft</span><span data-en>airborne aircraft</span>
+        {{end}}
+      </div>
     </div>
 
   </div>
@@ -443,11 +469,13 @@
     { layer: 'dipul:bundesautobahnen',                de: 'Bundesautobahnen',                  en: 'Federal Motorways' },
     { layer: 'dipul:bundesstrassen',                  de: 'Bundesstraßen',                     en: 'Federal Roads' },
     { layer: 'dipul:diplomatische_vertretungen',      de: 'Diplomatische Vertretungen',        en: 'Diplomatic Representations' },
-    { layer: 'dipul:ffh-gebiete',                     de: 'FFH-Gebiete',                       en: 'FFH Areas' },
+    { layer: 'dipul:ffh-gebiete',                      de: 'FFH-Gebiete',                       en: 'FFH Areas' },
     { layer: 'dipul:flugbeschraenkungsgebiete',       de: 'Flugbeschränkungsgebiete',          en: 'Flight Restriction Areas' },
     { layer: 'dipul:flughaefen',                      de: 'Flughäfen',                         en: 'Airports' },
     { layer: 'dipul:flugplaetze',                     de: 'Flugplätze',                        en: 'Airfields' },
     { layer: 'dipul:freibaeder',                      de: 'Freibäder',                         en: 'Open-air Pools' },
+    { layer: 'dipul:haengegleiter',                   de: 'Hängegleiter',                      en: 'Hang Gliders' },
+    // { layer: 'dipul:inaktive_temporaere_betriebseinschraenkungen', de: 'Inaktive Temp. Einschränkungen', en: 'Inactive Temp. Restrictions' },
     { layer: 'dipul:industrieanlagen',                de: 'Industrieanlagen',                  en: 'Industrial Facilities' },
     { layer: 'dipul:internationale_organisationen',   de: 'Internationale Organisationen',     en: 'International Organizations' },
     { layer: 'dipul:justizvollzugsanstalten',         de: 'Justizvollzugsanstalten',           en: 'Prisons' },
@@ -513,6 +541,92 @@
     radius: 100, color: '#00d4ff', fillColor: '#00d4ff',
     fillOpacity: 0.08, weight: 2, dashArray: '5 5'
   }).addTo(map);
+
+  // ── Live air traffic from OpenSky ────────────────────────────────────────
+  var _esc = document.createElement('div');
+  function escapeHtml(s) {
+    _esc.textContent = String(s);
+    return _esc.innerHTML;
+  }
+
+  var trafficLayer = L.layerGroup().addTo(map);
+  var TRAFFIC_INTERVAL = 15000; // ms
+  var trafficTimer = null;
+
+  var HELI_PREFIXES = ['CHX','ADAC','BPOL','SAR','ITH','HEMS','DRF','CHRIS'];
+  function isHelicopter(ac) {
+    if (ac.category === 8) return true;
+    var cs = (ac.callsign || '').toUpperCase();
+    return HELI_PREFIXES.some(function(p) { return cs.indexOf(p) === 0; });
+  }
+
+  function acIcon(ac) {
+    var heli   = isHelicopter(ac);
+    var emoji  = heli ? '🚁' : ac.category === 9 ? '🛩' : ac.category === 14 ? '🛸' : '✈️';
+    var rotate = heli ? '' : 'transform:rotate(' + (ac.truTrack||0) + 'deg);';
+    var lowAlt = !ac.onGround && ac.baroAlt > 0 && ac.baroAlt < 1000;
+    var filter = lowAlt
+      ? 'filter:drop-shadow(0 0 5px rgba(255,140,0,.95)) drop-shadow(0 1px 2px rgba(0,0,0,.8));'
+      : 'filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));';
+    var size   = lowAlt ? '1.4rem' : '1.15rem';
+    var label  = lowAlt
+      ? '<div style="font-size:0.6rem;font-weight:bold;color:#ff8c00;text-align:center;text-shadow:0 0 3px #000,0 0 3px #000;line-height:1.2;margin-top:1px;">' + Math.round(ac.baroAlt) + 'm</div>'
+      : '';
+    return L.divIcon({
+      html: '<div style="font-size:' + size + ';line-height:1;' + rotate + filter + '">' + emoji + '</div>' + label,
+      iconSize: [22, 26], iconAnchor: [11, 11], className: ''
+    });
+  }
+
+  function renderTraffic(data) {
+    trafficLayer.clearLayers();
+    var airborne = 0;
+    (data || []).forEach(function(ac) {
+      if (!ac.onGround) airborne++;
+      if (!ac.lat || !ac.lon) return;
+      var label = escapeHtml(ac.callsign || ac.icao24 || '?');
+      var alt   = ac.baroAlt   ? (Math.round(ac.baroAlt)   + ' m')   : '?';
+      var spd   = ac.velocity  ? (Math.round(ac.velocity)  + ' m/s') : '?';
+      L.marker([ac.lat, ac.lon], {icon: acIcon(ac)})
+        .bindPopup(
+          '<strong>' + label + '</strong>' +
+          (ac.onGround ? ' <em>(ground)</em>' : '') +
+          '<br>Alt: ' + escapeHtml(alt) + '&nbsp;&nbsp;Speed: ' + escapeHtml(spd) +
+          '<br><small style="color:#888">' + escapeHtml(ac.icao24) + '</small>'
+        )
+        .addTo(trafficLayer);
+    });
+    var card  = document.getElementById('traffic-card');
+    var count = document.getElementById('traffic-count');
+    if (card && count) {
+      card.classList.toggle('ok',   airborne === 0);
+      card.classList.toggle('warn', airborne > 0);
+      count.style.color = airborne > 0 ? 'var(--warn)' : 'var(--ok)';
+      count.textContent = airborne;
+    }
+  }
+
+  function fetchTraffic() {
+    if (document.visibilityState !== 'visible') return;
+    fetch('/traffic?lat=' + lat + '&lon=' + lon)
+      .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(renderTraffic)
+      .catch(function() {});
+  }
+
+  // Seed with server-side data, then start polling.
+  renderTraffic({{.TrafficJSON}});
+  trafficTimer = setInterval(fetchTraffic, TRAFFIC_INTERVAL);
+
+  // Pause polling when tab is hidden, resume when visible.
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+      fetchTraffic(); // immediate refresh on return
+      trafficTimer = setInterval(fetchTraffic, TRAFFIC_INTERVAL);
+    } else {
+      clearInterval(trafficTimer);
+    }
+  });
 
   // ── GeoJSON overlays for specifically affected zones ──────────────────────
   var zonesData = {{.ZonesGeoJSON}};

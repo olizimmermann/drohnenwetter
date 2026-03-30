@@ -180,3 +180,4 @@ go/vendor/
 .DS_Store
 .idea/
 *.swp
+credentials.json

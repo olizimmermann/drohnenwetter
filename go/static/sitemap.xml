@@ -9,4 +9,14 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://drohnenwetter.de/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://drohnenwetter.de/"/>
   </url>
+  <url>
+    <loc>https://drohnenwetter.de/impressum</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://drohnenwetter.de/datenschutz</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
 </urlset>

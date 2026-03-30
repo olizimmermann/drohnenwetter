@@ -136,6 +136,13 @@
     background: rgba(255,71,87,.06); border: 1px solid rgba(255,71,87,.2);
     border-radius: 8px; font-size: 13px; color: var(--warn); margin-bottom: .4rem;
   }
+  .warning-item .dismiss-btn, .data-warning-item .dismiss-btn {
+    margin-left: auto; flex-shrink: 0;
+    background: none; border: none; cursor: pointer;
+    font-size: 15px; line-height: 1; padding: 0 2px;
+    color: inherit; opacity: .45;
+  }
+  .warning-item .dismiss-btn:hover, .data-warning-item .dismiss-btn:hover { opacity: .9; }
   .data-warning-item {
     display: flex; align-items: center; gap: .5rem;
     padding: .55rem .9rem;
@@ -235,24 +242,28 @@
     <div class="data-warning-item">⚠️
       <span data-de>Taupunkt-Daten nicht verfügbar (OpenWeatherMap) – Nebelgefahr kann nicht berechnet werden.</span>
       <span data-en>Dew point data unavailable (OpenWeatherMap) – fog risk cannot be assessed.</span>
+      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">×</button>
     </div>
     {{end}}
     {{if .KpFailed}}
     <div class="data-warning-item">⚠️
       <span data-de>Kp-Index nicht verfügbar (GFZ Potsdam) – GPS-Zuverlässigkeit kann nicht bewertet werden.</span>
       <span data-en>Kp-Index unavailable (GFZ Potsdam) – GPS reliability cannot be assessed.</span>
+      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">×</button>
     </div>
     {{end}}
     {{if .DiPULFailed}}
     <div class="data-warning-item">⚠️
       <span data-de>Luftraumdaten nicht verfügbar (DiPUL) – Luftraum bitte manuell prüfen.</span>
       <span data-en>Airspace data unavailable (DiPUL) – please check airspace manually.</span>
+      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">×</button>
     </div>
     {{end}}
     {{if .TrafficFailed}}
     <div class="data-warning-item">⚠️
       <span data-de>Flugverkehr-Daten nicht verfügbar (OpenSky) – Luftverkehr bitte manuell prüfen.</span>
       <span data-en>Live traffic data unavailable (OpenSky) – check air traffic manually.</span>
+      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">×</button>
     </div>
     {{end}}
   </div>
@@ -261,10 +272,10 @@
   {{/* ── Safety warnings ── */}}
   {{if or $a.WindWarnings $a.TempWarnings $a.DewPointWarning $a.KpWarning}}
   <div class="warnings-section">
-    {{range $a.WindWarnings}}<div class="warning-item">💨 {{.}}</div>{{end}}
-    {{range $a.TempWarnings}}<div class="warning-item">🌡 {{.}}</div>{{end}}
-    {{if $a.DewPointWarning}}<div class="warning-item">🌫 <span data-de>{{$a.DewPointWarning}}</span><span data-en>{{$a.DewPointWarningEN}}</span></div>{{end}}
-    {{if $a.KpWarning}}<div class="warning-item">🧲 {{$a.KpWarning}}</div>{{end}}
+    {{range $a.WindWarnings}}<div class="warning-item">💨 {{.}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">×</button></div>{{end}}
+    {{range $a.TempWarnings}}<div class="warning-item">🌡 {{.}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">×</button></div>{{end}}
+    {{if $a.DewPointWarning}}<div class="warning-item">🌫 <span data-de>{{$a.DewPointWarning}}</span><span data-en>{{$a.DewPointWarningEN}}</span><button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">×</button></div>{{end}}
+    {{if $a.KpWarning}}<div class="warning-item">🧲 {{$a.KpWarning}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">×</button></div>{{end}}
   </div>
   {{end}}
 

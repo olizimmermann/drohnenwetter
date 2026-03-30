@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/olizimmermann/drone-weather/internal/api"
 )
@@ -14,7 +15,7 @@ var icao24Re = regexp.MustCompile(`^[0-9a-f]{6}$`)
 // TrackHandler proxies OpenSky /tracks for a single aircraft.
 // GET /track?icao24=abc123
 func TrackHandler(w http.ResponseWriter, r *http.Request) {
-	icao24 := r.URL.Query().Get("icao24")
+	icao24 := strings.ToLower(r.URL.Query().Get("icao24"))
 	if !icao24Re.MatchString(icao24) {
 		http.Error(w, "invalid icao24", http.StatusBadRequest)
 		return

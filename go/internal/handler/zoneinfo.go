@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"log"
 	"math"
 	"net/http"
@@ -10,9 +9,10 @@ import (
 	"github.com/olizimmermann/drone-weather/internal/api"
 )
 
-// TrafficHandler returns live nearby aircraft as JSON.
-// GET /traffic?lat=X&lon=Y
-func TrafficHandler(w http.ResponseWriter, r *http.Request) {
+// ZoneInfoHandler proxies a DiPUL WMS GetFeatureInfo request for a given
+// lat/lon and returns the raw GeoJSON FeatureCollection.
+// GET /zone-info?lat=X&lon=Y
+func ZoneInfoHandler(w http.ResponseWriter, r *http.Request) {
 	lat, errLat := strconv.ParseFloat(r.URL.Query().Get("lat"), 64)
 	lon, errLon := strconv.ParseFloat(r.URL.Query().Get("lon"), 64)
 	if errLat != nil || errLon != nil ||
@@ -23,16 +23,16 @@ func TrafficHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	aircraft, err := api.FetchNearbyTraffic(lat, lon)
+	body, err := api.FetchZoneInfo(lat, lon)
 	if err != nil {
-		log.Printf("[traffic] %.5f,%.5f: %v", lat, lon, err)
-		http.Error(w, "traffic unavailable", http.StatusBadGateway)
+		log.Printf("[zone-info] %.5f,%.5f: %v", lat, lon, err)
+		http.Error(w, "zone info unavailable", http.StatusBadGateway)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
-	if err := json.NewEncoder(w).Encode(aircraft); err != nil {
-		log.Printf("[traffic] encode error: %v", err)
+	if _, err := w.Write(body); err != nil {
+		log.Printf("[zone-info] write error: %v", err)
 	}
 }

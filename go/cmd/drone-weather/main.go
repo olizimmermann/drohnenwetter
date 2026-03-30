@@ -83,6 +83,15 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func securityHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		next.ServeHTTP(w, r)
+	})
+}
+
 // ── Template loading ──────────────────────────────────────────────────────────
 
 func loadTemplates(dir string) *template.Template {
@@ -138,18 +147,19 @@ func main() {
 		http.ServeFile(w, r, staticDir+"/sitemap.xml")
 	})
 
-	mux.HandleFunc("/impressum", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/impressum", rateLimitMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := tmpl.ExecuteTemplate(w, "impressum.html", struct{ Address string }{}); err != nil {
 			log.Printf("[impressum] template error: %v", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 		}
-	})
-	mux.HandleFunc("/datenschutz", func(w http.ResponseWriter, r *http.Request) {
+	})))
+	mux.Handle("/datenschutz", rateLimitMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := tmpl.ExecuteTemplate(w, "datenschutz.html", struct{ Address string }{}); err != nil {
 			log.Printf("[datenschutz] template error: %v", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 		}
-	})
+	})))
+	mux.Handle("/zone-info", rateLimitMiddleware(http.HandlerFunc(handler.ZoneInfoHandler)))
 	mux.Handle("/track", rateLimitMiddleware(http.HandlerFunc(handler.TrackHandler)))
 	mux.Handle("/traffic", rateLimitMiddleware(http.HandlerFunc(handler.TrafficHandler)))
 	mux.Handle("/", rateLimitMiddleware(handler.NewHomeHandler(tmpl)))
@@ -163,7 +173,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:         ":" + port,
-		Handler:      loggingMiddleware(mux),
+		Handler:      loggingMiddleware(securityHeadersMiddleware(mux)),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,

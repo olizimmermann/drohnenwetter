@@ -136,6 +136,13 @@
     background: rgba(255,71,87,.06); border: 1px solid rgba(255,71,87,.2);
     border-radius: 8px; font-size: 13px; color: var(--warn); margin-bottom: .4rem;
   }
+  .warning-item .dismiss-btn, .data-warning-item .dismiss-btn {
+    margin-left: auto; flex-shrink: 0;
+    background: none; border: none; cursor: pointer;
+    font-size: 15px; line-height: 1; padding: 0 2px;
+    color: inherit; opacity: .45;
+  }
+  .warning-item .dismiss-btn:hover, .data-warning-item .dismiss-btn:hover { opacity: .9; }
   .data-warning-item {
     display: flex; align-items: center; gap: .5rem;
     padding: .55rem .9rem;
@@ -204,11 +211,10 @@
     <span class="location-label">📍 {{.Address}}</span>
   </div>
   <div class="controls">
-    {{if $a.Flyable}}
-      <span class="badge badge-ok"><span data-de>FREIGEGEBEN</span><span data-en>CLEARED</span></span>
-    {{else}}
-      <span class="badge badge-warn"><span data-de>NICHT FREIGEGEBEN</span><span data-en>NOT CLEARED</span></span>
-    {{end}}
+    <span id="header-badge" class="badge {{if $a.Flyable}}badge-ok{{else}}badge-warn{{end}}">
+      <span id="header-badge-de" data-de>{{if $a.Flyable}}FREIGEGEBEN{{else}}NICHT FREIGEGEBEN{{end}}</span>
+      <span id="header-badge-en" data-en>{{if $a.Flyable}}CLEARED{{else}}NOT CLEARED{{end}}</span>
+    </span>
     <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark/light mode">☀️</button>
     <div class="lang-toggle">
       <button class="lang-btn" data-l="de" onclick="setLang('de')">DE</button>
@@ -220,13 +226,32 @@
 <div class="dashboard">
 
   {{/* ── Status banner ── */}}
-  <div class="status-banner {{if $a.Flyable}}ok{{else}}warn{{end}}">
-    <span class="status-icon">{{if $a.Flyable}}✅{{else}}🚫{{end}}</span>
+  <div id="status-banner" class="status-banner {{if $a.Flyable}}ok{{else}}warn{{end}}">
+    <span id="status-banner-icon" class="status-icon">{{if $a.Flyable}}✅{{else}}🚫{{end}}</span>
     <div>
-      <div data-de>{{if $a.Flyable}}Betrieb unbedenklich — alle Wetter Grenzwerte eingehalten. Manuelle Überprüfung der Flugzonen empfohlen.{{else}}Betrieb nicht empfohlen — Warnungen vorhanden{{end}}</div>
-      <div data-en>{{if $a.Flyable}}Operation clear — all weather limits within range. Manual check of flight zones recommended.{{else}}Operation not recommended — warnings present{{end}}</div>
+      <div id="status-banner-de" data-de>{{if $a.Flyable}}Betrieb unbedenklich — alle Wetter Grenzwerte eingehalten. Manuelle Überprüfung der Flugzonen empfohlen.{{else}}Betrieb nicht empfohlen — Warnungen vorhanden{{end}}</div>
+      <div id="status-banner-en" data-en>{{if $a.Flyable}}Operation clear — all weather limits within range. Manual check of flight zones recommended.{{else}}Operation not recommended — warnings present{{end}}</div>
     </div>
   </div>
+
+  {{/* ── Airspace zone warnings ── */}}
+  {{if .HasRedZone}}
+  <div class="warnings-section">
+    <div class="warning-item">🚫
+      <span data-de>Achtung: Eingeschränkter oder verbotener Luftraum (ED-R/D/P) an diesem Standort. Flug ohne Genehmigung nicht zulässig.</span>
+      <span data-en>Warning: Restricted or prohibited airspace (ED-R/D/P) at this location. Flight without authorisation not permitted.</span>
+      <button class="dismiss-btn" onclick="dismissZoneWarning(this)" title="Ausblenden / Dismiss">×</button>
+    </div>
+  </div>
+  {{else if .HasOrangeZone}}
+  <div class="warnings-section">
+    <div class="warning-item" style="background:rgba(255,149,0,.07);border-color:rgba(255,149,0,.3);color:#e08800">🟠
+      <span data-de>Hinweis: Kontrollzone oder Militärgebiet an diesem Standort. Koordination mit zuständiger Stelle erforderlich.</span>
+      <span data-en>Notice: Control zone or military area at this location. Coordination with the responsible authority required.</span>
+      <button class="dismiss-btn" onclick="dismissZoneWarning(this)" title="Ausblenden / Dismiss">×</button>
+    </div>
+  </div>
+  {{end}}
 
   {{/* ── Data availability notices ── */}}
   {{if or .OWFailed .KpFailed .DiPULFailed}}
@@ -235,24 +260,28 @@
     <div class="data-warning-item">⚠️
       <span data-de>Taupunkt-Daten nicht verfügbar (OpenWeatherMap) – Nebelgefahr kann nicht berechnet werden.</span>
       <span data-en>Dew point data unavailable (OpenWeatherMap) – fog risk cannot be assessed.</span>
+      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">×</button>
     </div>
     {{end}}
     {{if .KpFailed}}
     <div class="data-warning-item">⚠️
       <span data-de>Kp-Index nicht verfügbar (GFZ Potsdam) – GPS-Zuverlässigkeit kann nicht bewertet werden.</span>
       <span data-en>Kp-Index unavailable (GFZ Potsdam) – GPS reliability cannot be assessed.</span>
+      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">×</button>
     </div>
     {{end}}
     {{if .DiPULFailed}}
     <div class="data-warning-item">⚠️
       <span data-de>Luftraumdaten nicht verfügbar (DiPUL) – Luftraum bitte manuell prüfen.</span>
       <span data-en>Airspace data unavailable (DiPUL) – please check airspace manually.</span>
+      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">×</button>
     </div>
     {{end}}
     {{if .TrafficFailed}}
     <div class="data-warning-item">⚠️
       <span data-de>Flugverkehr-Daten nicht verfügbar (OpenSky) – Luftverkehr bitte manuell prüfen.</span>
       <span data-en>Live traffic data unavailable (OpenSky) – check air traffic manually.</span>
+      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">×</button>
     </div>
     {{end}}
   </div>
@@ -261,21 +290,21 @@
   {{/* ── Safety warnings ── */}}
   {{if or $a.WindWarnings $a.TempWarnings $a.DewPointWarning $a.KpWarning}}
   <div class="warnings-section">
-    {{range $a.WindWarnings}}<div class="warning-item">💨 {{.}}</div>{{end}}
-    {{range $a.TempWarnings}}<div class="warning-item">🌡 {{.}}</div>{{end}}
-    {{if $a.DewPointWarning}}<div class="warning-item">🌫 <span data-de>{{$a.DewPointWarning}}</span><span data-en>{{$a.DewPointWarningEN}}</span></div>{{end}}
-    {{if $a.KpWarning}}<div class="warning-item">🧲 {{$a.KpWarning}}</div>{{end}}
+    {{range $a.WindWarnings}}<div class="warning-item">💨 {{.}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">×</button></div>{{end}}
+    {{range $a.TempWarnings}}<div class="warning-item">🌡 {{.}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">×</button></div>{{end}}
+    {{if $a.DewPointWarning}}<div class="warning-item">🌫 <span data-de>{{$a.DewPointWarning}}</span><span data-en>{{$a.DewPointWarningEN}}</span><button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">×</button></div>{{end}}
+    {{if $a.KpWarning}}<div class="warning-item">🧲 {{$a.KpWarning}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">×</button></div>{{end}}
   </div>
   {{end}}
 
   {{/* ── Metric cards ── */}}
   <div class="metrics-row">
 
-    <div class="metric-card metric-card--status {{if $a.Flyable}}ok{{else}}warn{{end}}">
+    <div id="status-card" class="metric-card metric-card--status {{if $a.Flyable}}ok{{else}}warn{{end}}">
       <div class="metric-label" data-de>Flugstatus</div>
       <div class="metric-label" data-en>Flight Status</div>
-      <span class="metric-icon">{{if $a.Flyable}}✅{{else}}🚫{{end}}</span>
-      <div class="metric-value" style="font-size:1.15rem;{{if $a.Flyable}}color:var(--ok){{else}}color:var(--warn){{end}}">
+      <span id="status-icon" class="metric-icon">{{if $a.Flyable}}✅{{else}}🚫{{end}}</span>
+      <div id="status-value" class="metric-value" style="font-size:1.15rem;{{if $a.Flyable}}color:var(--ok){{else}}color:var(--warn){{end}}">
         <span data-de>{{if $a.Flyable}}FREIGABE{{else}}GESPERRT{{end}}</span>
         <span data-en>{{if $a.Flyable}}CLEARED{{else}}BLOCKED{{end}}</span>
       </div>
@@ -342,6 +371,10 @@
         {{else}}
           <span data-de>Luftfahrzeuge in der Luft</span><span data-en>airborne aircraft</span>
         {{end}}
+      </div>
+      <div class="metric-sub">
+        <span data-de title="Nur ADS-B/Mode-S. FLARM-Luftfahrzeuge (Segelflug, Ultraleicht) werden nicht erfasst.">ℹ️ ADS-B/Mode-S</span>
+        <span data-en title="ADS-B/Mode-S only. FLARM aircraft (gliders, ultralights) are not shown.">ℹ️ ADS-B/Mode-S</span>
       </div>
     </div>
 
@@ -462,41 +495,50 @@
 (function() {
   var WMS_BASE  = 'https://uas-betrieb.de/geoservices/dipul/wms';
   var WMS_OWS   = 'https://uas-betrieb.de/geoservices/dipul/ows';
+  // WMS_LAYERS ordered least→most restrictive: last layer renders on top.
   var WMS_LAYERS = [
-    { layer: 'dipul:bahnanlagen',                     de: 'Bahnanlagen',                       en: 'Railway Facilities' },
-    { layer: 'dipul:behoerden',                       de: 'Behörden',                          en: 'Authorities' },
+    // Geography / infrastructure (bottom)
+    { layer: 'dipul:seewasserstrassen',               de: 'Seewasserstraßen',                  en: 'Sea Waterways' },
     { layer: 'dipul:binnenwasserstrassen',            de: 'Binnenwasserstraßen',               en: 'Inland Waterways' },
+    { layer: 'dipul:schifffahrtsanlagen',             de: 'Schifffahrtsanlagen',               en: 'Shipping Facilities' },
+    { layer: 'dipul:bahnanlagen',                     de: 'Bahnanlagen',                       en: 'Railway Facilities' },
     { layer: 'dipul:bundesautobahnen',                de: 'Bundesautobahnen',                  en: 'Federal Motorways' },
     { layer: 'dipul:bundesstrassen',                  de: 'Bundesstraßen',                     en: 'Federal Roads' },
-    { layer: 'dipul:diplomatische_vertretungen',      de: 'Diplomatische Vertretungen',        en: 'Diplomatic Representations' },
-    { layer: 'dipul:ffh-gebiete',                      de: 'FFH-Gebiete',                       en: 'FFH Areas' },
-    { layer: 'dipul:flugbeschraenkungsgebiete',       de: 'Flugbeschränkungsgebiete',          en: 'Flight Restriction Areas' },
-    { layer: 'dipul:flughaefen',                      de: 'Flughäfen',                         en: 'Airports' },
-    { layer: 'dipul:flugplaetze',                     de: 'Flugplätze',                        en: 'Airfields' },
-    { layer: 'dipul:freibaeder',                      de: 'Freibäder',                         en: 'Open-air Pools' },
-    { layer: 'dipul:haengegleiter',                   de: 'Hängegleiter',                      en: 'Hang Gliders' },
-    // { layer: 'dipul:inaktive_temporaere_betriebseinschraenkungen', de: 'Inaktive Temp. Einschränkungen', en: 'Inactive Temp. Restrictions' },
-    { layer: 'dipul:industrieanlagen',                de: 'Industrieanlagen',                  en: 'Industrial Facilities' },
-    { layer: 'dipul:internationale_organisationen',   de: 'Internationale Organisationen',     en: 'International Organizations' },
-    { layer: 'dipul:justizvollzugsanstalten',         de: 'Justizvollzugsanstalten',           en: 'Prisons' },
-    { layer: 'dipul:kontrollzonen',                   de: 'Kontrollzonen',                     en: 'Control Zones' },
-    { layer: 'dipul:kraftwerke',                      de: 'Kraftwerke',                        en: 'Power Plants' },
-    { layer: 'dipul:krankenhaeuser',                  de: 'Krankenhäuser',                     en: 'Hospitals' },
-    { layer: 'dipul:labore',                          de: 'Labore',                            en: 'Laboratories' },
-    { layer: 'dipul:militaerische_anlagen',           de: 'Militärische Anlagen',              en: 'Military Facilities' },
-    { layer: 'dipul:modellflugplaetze',               de: 'Modellflugplätze',                  en: 'Model Airfields' },
+    // Inactive restrictions
+    { layer: 'dipul:inaktive_temporaere_betriebseinschraenkungen', de: 'Inaktive Temp. Einschränkungen', en: 'Inactive Temp. Restrictions' },
+    // Nature / environment
+    { layer: 'dipul:ffh-gebiete',                     de: 'FFH-Gebiete',                       en: 'FFH Areas' },
+    { layer: 'dipul:vogelschutzgebiete',              de: 'Vogelschutzgebiete',                en: 'Bird Protection Areas' },
     { layer: 'dipul:nationalparks',                   de: 'Nationalparks',                     en: 'National Parks' },
     { layer: 'dipul:naturschutzgebiete',              de: 'Naturschutzgebiete',                en: 'Nature Reserves' },
-    { layer: 'dipul:polizei',                         de: 'Polizei',                           en: 'Police' },
-    { layer: 'dipul:schifffahrtsanlagen',             de: 'Schifffahrtsanlagen',               en: 'Shipping Facilities' },
-    { layer: 'dipul:seewasserstrassen',               de: 'Seewasserstraßen',                  en: 'Sea Waterways' },
-    { layer: 'dipul:sicherheitsbehoerden',            de: 'Sicherheitsbehörden',               en: 'Security Authorities' },
+    // Infrastructure / utilities
     { layer: 'dipul:stromleitungen',                  de: 'Stromleitungen',                    en: 'Power Lines' },
-    { layer: 'dipul:temporaere_betriebseinschraenkungen', de: 'Temporäre Einschränkungen',     en: 'Temporary Restrictions' },
-    { layer: 'dipul:umspannwerke',                    de: 'Umspannwerke',                      en: 'Transformer Stations' },
-    { layer: 'dipul:vogelschutzgebiete',              de: 'Vogelschutzgebiete',                en: 'Bird Protection Areas' },
     { layer: 'dipul:windkraftanlagen',                de: 'Windkraftanlagen',                  en: 'Wind Turbines' },
+    { layer: 'dipul:umspannwerke',                    de: 'Umspannwerke',                      en: 'Transformer Stations' },
     { layer: 'dipul:wohngrundstuecke',                de: 'Wohngrundstücke',                   en: 'Residential Properties' },
+    { layer: 'dipul:freibaeder',                      de: 'Freibäder',                         en: 'Open-air Pools' },
+    { layer: 'dipul:industrieanlagen',                de: 'Industrieanlagen',                  en: 'Industrial Facilities' },
+    { layer: 'dipul:kraftwerke',                      de: 'Kraftwerke',                        en: 'Power Plants' },
+    { layer: 'dipul:labore',                          de: 'Labore',                            en: 'Laboratories' },
+    { layer: 'dipul:krankenhaeuser',                  de: 'Krankenhäuser',                     en: 'Hospitals' },
+    // Authorities / security
+    { layer: 'dipul:behoerden',                       de: 'Behörden',                          en: 'Authorities' },
+    { layer: 'dipul:justizvollzugsanstalten',         de: 'Justizvollzugsanstalten',           en: 'Prisons' },
+    { layer: 'dipul:polizei',                         de: 'Polizei',                           en: 'Police' },
+    { layer: 'dipul:sicherheitsbehoerden',            de: 'Sicherheitsbehörden',               en: 'Security Authorities' },
+    { layer: 'dipul:internationale_organisationen',   de: 'Internationale Organisationen',     en: 'International Organizations' },
+    { layer: 'dipul:diplomatische_vertretungen',      de: 'Diplomatische Vertretungen',        en: 'Diplomatic Representations' },
+    // Military
+    { layer: 'dipul:militaerische_anlagen',           de: 'Militärische Anlagen',              en: 'Military Facilities' },
+    // Aviation
+    { layer: 'dipul:haengegleiter',                   de: 'Hängegleiter',                      en: 'Hang Gliders' },
+    { layer: 'dipul:modellflugplaetze',               de: 'Modellflugplätze',                  en: 'Model Airfields' },
+    { layer: 'dipul:flugplaetze',                     de: 'Flugplätze',                        en: 'Airfields' },
+    { layer: 'dipul:flughaefen',                      de: 'Flughäfen',                         en: 'Airports' },
+    // Airspace — most restrictive, rendered on top
+    { layer: 'dipul:temporaere_betriebseinschraenkungen', de: 'Temporäre Einschränkungen',     en: 'Temporary Restrictions' },
+    { layer: 'dipul:kontrollzonen',                   de: 'Kontrollzonen',                     en: 'Control Zones' },
+    { layer: 'dipul:flugbeschraenkungsgebiete',       de: 'Flugbeschränkungsgebiete',          en: 'Flight Restriction Areas' },
   ];
 
   // Zone colour palette for API-sourced GeoJSON overlays
@@ -509,6 +551,34 @@
   };
 
   // ── Init map — zoom 17 to match original ─────────────────────────────────
+  var weatherFlyable = {{if .WeatherFlyable}}true{{else}}false{{end}};
+
+  window.dismissZoneWarning = function(btn) {
+    btn.closest('.warning-item').remove();
+    if (weatherFlyable) {
+      // Status card
+      var card = document.getElementById('status-card');
+      var icon = document.getElementById('status-icon');
+      var val  = document.getElementById('status-value');
+      card.className = card.className.replace('warn', 'ok');
+      icon.textContent = '✅';
+      val.style.color = 'var(--ok)';
+      val.querySelectorAll('[data-de]').forEach(function(el) { el.textContent = 'FREIGABE'; });
+      val.querySelectorAll('[data-en]').forEach(function(el) { el.textContent = 'CLEARED'; });
+      // Status banner
+      var banner = document.getElementById('status-banner');
+      banner.className = banner.className.replace('warn', 'ok');
+      document.getElementById('status-banner-icon').textContent = '✅';
+      document.getElementById('status-banner-de').textContent = 'Betrieb freigegeben — alle Wetter Grenzwerte eingehalten. Manuelle Überprüfung der Flugzonen weiterhin empfohlen.';
+      document.getElementById('status-banner-en').textContent = 'Operation clear — all weather limits within range. Manual check of flight zones recommended.';
+      // Header badge
+      var badge = document.getElementById('header-badge');
+      badge.className = badge.className.replace('badge-warn', 'badge-ok');
+      document.getElementById('header-badge-de').textContent = 'FREIGEGEBEN';
+      document.getElementById('header-badge-en').textContent = 'CLEARED';
+    }
+  };
+
   var lat = {{.Lat}};
   var lon = {{.Lon}};
   var map = L.map('map').setView([lat, lon], 17);
@@ -656,6 +726,135 @@
       });
     });
   }
+
+  // ── WMS GetFeatureInfo on map click ──────────────────────────────────────
+  var zoneInfoPopup = L.popup({maxWidth: 320});
+
+  // Priority: lower = more restrictive = shown first
+  var ZONE_PRIORITY = {
+    'flugbeschraenkungsgebiete': 1,
+    'kontrollzonen': 2,
+    'temporaere_betriebseinschraenkungen': 3,
+    'flughaefen': 4,
+    'flugplaetze': 5,
+    'militaerische_anlagen': 6,
+    'modellflugplaetze': 7,
+    'haengegleiter': 8,
+    'diplomatische_vertretungen': 9,
+    'internationale_organisationen': 10,
+    'sicherheitsbehoerden': 11,
+    'polizei': 12,
+    'behoerden': 13,
+    'justizvollzugsanstalten': 14,
+    'kraftwerke': 15,
+    'labore': 16,
+    'krankenhaeuser': 17,
+    'freibaeder': 18,
+    'industrieanlagen': 19,
+    'umspannwerke': 20,
+    'wohngrundstuecke': 21,
+    'windkraftanlagen': 22,
+    'stromleitungen': 23,
+    'naturschutzgebiete': 24,
+    'nationalparks': 25,
+    'vogelschutzgebiete': 26,
+    'ffh-gebiete': 27,
+    'inaktive_temporaere_betriebseinschraenkungen': 28,
+  };
+  var ZONE_ICON = {
+    'flugbeschraenkungsgebiete': '🔴',
+    'kontrollzonen': '🔴',
+    'temporaere_betriebseinschraenkungen': '🟠',
+    'flughaefen': '🟠',
+    'flugplaetze': '🟠',
+    'militaerische_anlagen': '🟠',
+    'modellflugplaetze': '🟡',
+    'haengegleiter': '🟡',
+    'diplomatische_vertretungen': '🔵',
+    'internationale_organisationen': '🔵',
+    'sicherheitsbehoerden': '🔵',
+    'polizei': '🔵',
+    'behoerden': '🔵',
+    'justizvollzugsanstalten': '🔵',
+    'kraftwerke': '🟣',
+    'labore': '🟣',
+    'krankenhaeuser': '🟣',
+    'freibaeder': '🟣',
+    'industrieanlagen': '🟣',
+    'umspannwerke': '🟣',
+    'wohngrundstuecke': '⚪',
+    'windkraftanlagen': '⚪',
+    'stromleitungen': '⚪',
+    'naturschutzgebiete': '🟢',
+    'nationalparks': '🟢',
+    'vogelschutzgebiete': '🟢',
+    'ffh-gebiete': '🟢',
+    'inaktive_temporaere_betriebseinschraenkungen': '⚫',
+  };
+
+  function featureLayer(f) {
+    return (f.id || '').split('.')[0];
+  }
+
+  function formatZoneFeatures(features) {
+    var lang = localStorage.getItem('lang') || 'de';
+    var sorted = features.slice().sort(function(a, b) {
+      var pa = ZONE_PRIORITY[featureLayer(a)] || 99;
+      var pb = ZONE_PRIORITY[featureLayer(b)] || 99;
+      return pa - pb;
+    });
+    var header = '<div style="font-size:.75em;color:var(--muted);margin-bottom:.5rem">' +
+      sorted.length + '\u202f' + (lang === 'en' ? 'zone(s) at this point' : 'Zone(n) an diesem Punkt') +
+      '</div>';
+    var rows = sorted.map(function(f) {
+      var layer = featureLayer(f);
+      var p = f.properties || {};
+      var name = p.name || p.designator || (p.type_code || layer).replace(/_/g, '\u202f');
+      var type = (p.type_code || '').replace(/_/g, '\u202f');
+      var lower = p.lower_limit_altitude != null
+        ? p.lower_limit_altitude + '\u202f' + (p.lower_limit_unit || '') + '\u202f' + (p.lower_limit_alt_ref || '')
+        : '';
+      var upper = p.upper_limit_altitude != null
+        ? p.upper_limit_altitude + '\u202f' + (p.upper_limit_unit || '') + '\u202f' + (p.upper_limit_alt_ref || '')
+        : '';
+      var icon = ZONE_ICON[layer] || '⚪';
+      var html = icon + '\u2002<strong>' + escapeHtml(name) + '</strong>';
+      if (type) html += '&nbsp;<em style="color:var(--muted);font-size:.82em">' + escapeHtml(type) + '</em>';
+      if (lower || upper) html += '<br><span style="font-size:.82em;padding-left:1.4em">' +
+        escapeHtml(lower) + (upper ? ' \u2013 ' + escapeHtml(upper) : '') + '</span>';
+      if (p.legal_ref) html += '<br><span style="font-size:.75em;color:var(--muted);padding-left:1.4em">' +
+        escapeHtml(p.legal_ref) + '</span>';
+      return html;
+    }).join('<hr style="margin:.4rem 0;border:none;border-top:1px solid var(--border)">');
+    return header + rows;
+  }
+
+  map.on('click', function(e) {
+    var clat = e.latlng.lat, clon = e.latlng.lng;
+    if (!isFinite(clat) || !isFinite(clon) || clat < -90 || clat > 90 || clon < -180 || clon > 180) return;
+
+    zoneInfoPopup
+      .setLatLng(e.latlng)
+      .setContent('<span style="color:var(--muted);font-size:.85em">' + (localStorage.getItem('lang') === 'en' ? 'Loading…' : 'Lade…') + '</span>')
+      .openOn(map);
+
+    fetch('/zone-info?lat=' + clat + '&lon=' + clon)
+      .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function(data) {
+        if (!data.features || data.features.length === 0) {
+          zoneInfoPopup.setContent(
+            '<span style="color:var(--muted);font-size:.85em">' +
+            (localStorage.getItem('lang') === 'en' ? 'No restricted zones at this point.' : 'Keine Zonen an diesem Punkt.') +
+            '</span>'
+          );
+          return;
+        }
+        zoneInfoPopup.setContent(formatZoneFeatures(data.features));
+      })
+      .catch(function() {
+        zoneInfoPopup.setContent('<span style="color:var(--warn);font-size:.85em">⚠ Fehler / Error</span>');
+      });
+  });
 
   // ── Legend Leaflet control with real WMS GetLegendGraphic icons ───────────
   var LegendControl = L.Control.extend({

@@ -39,6 +39,9 @@ type resultsData struct {
 	KpFailed       bool // Kp-Index unavailable
 	DiPULFailed    bool // DiPUL airspace data unavailable
 	TrafficFailed  bool // OpenSky live traffic unavailable
+	HasRedZone      bool // ED-R / ED-D / ED-P at this location
+	HasOrangeZone   bool // CTR / ATZ / ED-LR / MILITARY at this location
+	WeatherFlyable  bool // weather-only assessment (ignoring zones)
 	ErrorDE        string
 	ErrorEN        string
 }
@@ -106,16 +109,6 @@ func parseCoords(s string) (float64, float64, bool) {
 		return 0, 0, false
 	}
 	return lat, lon, true
-}
-
-func clientIP(r *http.Request) string {
-	if ip := r.Header.Get("Cf-Connecting-Ip"); ip != "" {
-		return ip
-	}
-	if ip := r.Header.Get("X-Forwarded-For"); ip != "" {
-		return strings.SplitN(ip, ",", 2)[0]
-	}
-	return r.RemoteAddr
 }
 
 func logLookup(mode string, geo *api.GeocodeResult, ip string) {
@@ -214,7 +207,23 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	dipulFailed   := fetched.errs[3] != nil
 	trafficFailed := fetched.errs[4] != nil
 
+	var hasRedZone, hasOrangeZone bool
+	for _, z := range fetched.zones {
+		switch z.TypeCode {
+		case "FLIGHT_RESTRICTION":
+			hasRedZone = true
+		case "CONTROL_ZONE", "AIRPORT", "AIRFIELD_LAW", "MILITARY":
+			hasOrangeZone = true
+		}
+	}
+
 	a := assessment.Assess(fetched.utm, fetched.ow, fetched.kp)
+	weatherFlyable := a.Flyable // capture before zone override
+
+	// Restricted or controlled airspace overrides weather-only assessment.
+	if hasRedZone || hasOrangeZone {
+		a.Flyable = false
+	}
 
 	// Serialize zones to JSON for direct injection into the Leaflet map script.
 	zonesJSON, err := json.Marshal(fetched.zones)
@@ -241,6 +250,9 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		KpFailed:      kpFailed,
 		DiPULFailed:   dipulFailed,
 		TrafficFailed: trafficFailed,
+		HasRedZone:     hasRedZone,
+		HasOrangeZone:  hasOrangeZone,
+		WeatherFlyable: weatherFlyable,
 	}
 
 	if err := h.tmpl.ExecuteTemplate(w, "results.html", data); err != nil {

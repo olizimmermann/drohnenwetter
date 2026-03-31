@@ -4,7 +4,7 @@ Real-time weather and airspace safety assessment for **DJI Matrice 30T (M30T)** 
 
 [![Daily Health Check](https://github.com/olizimmermann/drohnenwetter/actions/workflows/daily-health.yml/badge.svg)](https://github.com/olizimmermann/drohnenwetter/actions/workflows/daily-health.yml)
 
-![Drone Weather](SafeFlight.png)
+![Drohnenwetter](drohnenwetter.png)
 
 ---
 
@@ -54,7 +54,7 @@ Real-time weather and airspace safety assessment for **DJI Matrice 30T (M30T)** 
 ## Stack
 
 - **Language:** Go 1.23 — `net/http`, `html/template`, no web framework
-- **Version:** `0.7`
+- **Version:** `0.8` (see [VERSION](go/VERSION))
 - **Dependencies:** [`golang.org/x/time/rate`](https://pkg.go.dev/golang.org/x/time/rate) (rate limiting)
 - **Map:** Leaflet.js + OpenStreetMap + DiPUL WMS
 - **Deploy:** Docker Compose — 3 app replicas + Nginx reverse proxy
@@ -194,4 +194,4 @@ Weather data © respective providers. Map data © OpenStreetMap contributors.
 
 ---
 
-**Contact:** [drone-weather@oz-security.io](mailto:drone-weather@oz-security.io) · [github.com/olizimmermann](https://github.com/olizimmermann)
+**Contact:** [public@ozimmermann.com](mailto:public@ozimmermann.com) · [github.com/olizimmermann](https://github.com/olizimmermann)

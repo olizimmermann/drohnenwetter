@@ -94,13 +94,30 @@
   }
   .zones-list { flex: 1; overflow-y: auto; max-height: 380px; }
   .zone-item {
-    display: flex; align-items: flex-start; gap: .65rem;
-    padding: .65rem 1rem; border-bottom: 1px solid var(--border); font-size: 13px;
+    border-bottom: 1px solid var(--border); font-size: 13px; cursor: pointer;
   }
   .zone-item:last-child { border-bottom: none; }
+  .zone-item-header {
+    display: flex; align-items: flex-start; gap: .65rem;
+    padding: .65rem 1rem;
+  }
+  .zone-item-header:hover { background: var(--surface2); }
   .zone-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; margin-top: 4px; }
   .zone-name { font-weight: 500; line-height: 1.3; }
   .zone-type { font-size: 11px; color: var(--muted); }
+  .zone-chevron { margin-left: auto; font-size: 10px; color: var(--muted); transition: transform .2s; flex-shrink: 0; padding-top: 3px; }
+  .zone-item.open .zone-chevron { transform: rotate(90deg); }
+  .zone-details {
+    display: none; padding: .5rem 1rem .75rem 2.2rem;
+    border-top: 1px solid var(--border); background: var(--surface2);
+  }
+  .zone-item.open .zone-details { display: block; }
+  .zone-detail-area { margin-bottom: .6rem; }
+  .zone-detail-area:last-child { margin-bottom: 0; }
+  .zone-detail-area-name { font-size: 12px; font-weight: 600; margin-bottom: .25rem; }
+  .zone-detail-row { display: flex; gap: .4rem; font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .zone-detail-label { flex-shrink: 0; }
+  .zone-detail-value { color: var(--text); }
   .no-zones { padding: 1.5rem 1rem; text-align: center; color: var(--muted); font-size: 13px; }
 
   /* ── Detail tables ── */
@@ -240,7 +257,7 @@
     <div class="warning-item">🚫
       <span data-de>Achtung: Eingeschränkter oder verbotener Luftraum (ED-R/D/P) an diesem Standort. Flug ohne Genehmigung nicht zulässig.</span>
       <span data-en>Warning: Restricted or prohibited airspace (ED-R/D/P) at this location. Flight without authorisation not permitted.</span>
-      <button class="dismiss-btn" onclick="dismissZoneWarning(this)" title="Ausblenden / Dismiss">×</button>
+      <button class="dismiss-btn" onclick="dismissZoneWarning(this)" title="Ausblenden / Dismiss">X</button>
     </div>
   </div>
   {{else if .HasOrangeZone}}
@@ -248,7 +265,7 @@
     <div class="warning-item" style="background:rgba(255,149,0,.07);border-color:rgba(255,149,0,.3);color:#e08800">🟠
       <span data-de>Hinweis: Kontrollzone oder Militärgebiet an diesem Standort. Koordination mit zuständiger Stelle erforderlich.</span>
       <span data-en>Notice: Control zone or military area at this location. Coordination with the responsible authority required.</span>
-      <button class="dismiss-btn" onclick="dismissZoneWarning(this)" title="Ausblenden / Dismiss">×</button>
+      <button class="dismiss-btn" onclick="dismissZoneWarning(this)" title="Ausblenden / Dismiss">X</button>
     </div>
   </div>
   {{end}}
@@ -260,28 +277,28 @@
     <div class="data-warning-item">⚠️
       <span data-de>Taupunkt-Daten nicht verfügbar (OpenWeatherMap) – Nebelgefahr kann nicht berechnet werden.</span>
       <span data-en>Dew point data unavailable (OpenWeatherMap) – fog risk cannot be assessed.</span>
-      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">×</button>
+      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">X</button>
     </div>
     {{end}}
     {{if .KpFailed}}
     <div class="data-warning-item">⚠️
       <span data-de>Kp-Index nicht verfügbar (GFZ Potsdam) – GPS-Zuverlässigkeit kann nicht bewertet werden.</span>
       <span data-en>Kp-Index unavailable (GFZ Potsdam) – GPS reliability cannot be assessed.</span>
-      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">×</button>
+      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">X</button>
     </div>
     {{end}}
     {{if .DiPULFailed}}
     <div class="data-warning-item">⚠️
       <span data-de>Luftraumdaten nicht verfügbar (DiPUL) – Luftraum bitte manuell prüfen.</span>
       <span data-en>Airspace data unavailable (DiPUL) – please check airspace manually.</span>
-      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">×</button>
+      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">X</button>
     </div>
     {{end}}
     {{if .TrafficFailed}}
     <div class="data-warning-item">⚠️
       <span data-de>Flugverkehr-Daten nicht verfügbar (OpenSky) – Luftverkehr bitte manuell prüfen.</span>
       <span data-en>Live traffic data unavailable (OpenSky) – check air traffic manually.</span>
-      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">×</button>
+      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">X</button>
     </div>
     {{end}}
   </div>
@@ -290,10 +307,10 @@
   {{/* ── Safety warnings ── */}}
   {{if or $a.WindWarnings $a.TempWarnings $a.DewPointWarning $a.KpWarning}}
   <div class="warnings-section">
-    {{range $a.WindWarnings}}<div class="warning-item">💨 {{.}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">×</button></div>{{end}}
-    {{range $a.TempWarnings}}<div class="warning-item">🌡 {{.}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">×</button></div>{{end}}
-    {{if $a.DewPointWarning}}<div class="warning-item">🌫 <span data-de>{{$a.DewPointWarning}}</span><span data-en>{{$a.DewPointWarningEN}}</span><button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">×</button></div>{{end}}
-    {{if $a.KpWarning}}<div class="warning-item">🧲 {{$a.KpWarning}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">×</button></div>{{end}}
+    {{range $a.WindWarnings}}<div class="warning-item">💨 {{.}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">X</button></div>{{end}}
+    {{range $a.TempWarnings}}<div class="warning-item">🌡 {{.}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">X</button></div>{{end}}
+    {{if $a.DewPointWarning}}<div class="warning-item">🌫 <span data-de>{{$a.DewPointWarning}}</span><span data-en>{{$a.DewPointWarningEN}}</span><button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">X</button></div>{{end}}
+    {{if $a.KpWarning}}<div class="warning-item">🧲 {{$a.KpWarning}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">X</button></div>{{end}}
   </div>
   {{end}}
 
@@ -394,13 +411,29 @@
       <div class="zones-list">
         {{if .Zones}}
           {{range .Zones}}
-          <div class="zone-item">
-            <div class="zone-swatch" style="background:var(--zone-{{.TypeCode}},#888)"></div>
-            <div>
-              <div class="zone-name">{{.TypeCode}}</div>
-              <div class="zone-type">{{.TotalRecords}} <span data-de>Zone(n)</span><span data-en>zone(s)</span></div>
+          <div class="zone-item" onclick="this.classList.toggle('open')">
+            <div class="zone-item-header">
+              <div class="zone-swatch" style="background:var(--zone-{{.TypeCode}},#888)"></div>
+              <div>
+                <div class="zone-name">{{.TypeCode}}</div>
+                <div class="zone-type">{{.TotalRecords}} <span data-de>Zone(n)</span><span data-en>zone(s)</span></div>
+              </div>
+              <div class="zone-chevron">▶</div>
+            </div>
+            <div class="zone-details">
               {{range .Areas}}
-                {{if index . "name"}}<div class="zone-type" style="margin-top:2px">→ {{index . "name"}}</div>{{end}}
+              <div class="zone-detail-area">
+                {{if index . "name"}}<div class="zone-detail-area-name">{{index . "name"}}</div>{{end}}
+                {{if index . "legalReference"}}
+                <div class="zone-detail-row"><span class="zone-detail-label" data-de>Rechtsgrundlage:</span><span class="zone-detail-label" data-en>Legal ref.:</span><span class="zone-detail-value">{{index . "legalReference"}}</span></div>
+                {{end}}
+                {{if index . "lowerLimitAltitude"}}
+                <div class="zone-detail-row"><span class="zone-detail-label" data-de>Untergrenze:</span><span class="zone-detail-label" data-en>Lower limit:</span><span class="zone-detail-value">{{index . "lowerLimitAltitude"}} {{index . "lowerLimitUnit"}} {{index . "lowerLimitReference"}}</span></div>
+                {{end}}
+                {{if index . "upperLimitAltitude"}}
+                <div class="zone-detail-row"><span class="zone-detail-label" data-de>Obergrenze:</span><span class="zone-detail-label" data-en>Upper limit:</span><span class="zone-detail-value">{{index . "upperLimitAltitude"}} {{index . "upperLimitUnit"}} {{index . "upperLimitReference"}}</span></div>
+                {{end}}
+              </div>
               {{end}}
             </div>
           </div>
@@ -543,11 +576,24 @@
 
   // Zone colour palette for API-sourced GeoJSON overlays
   var ZONE_COLORS = {
-    'CTR': '#ff9500', 'TMA': '#ffcc00', 'ATZ': '#ff9500',
-    'ED-R': '#ff4757', 'ED-D': '#ff4757', 'ED-P': '#ff4757', 'ED-LR': '#ffa502',
-    'NATIONAL_PARK': '#2ed573', 'NSG': '#2ed573', 'NATURA': '#2ed573', 'BIOSPHERE': '#2ed573',
-    'INDUSTRIAL': '#8888ff', 'PRISON': '#a55eea', 'MILITARY': '#ff6b81',
-    '_default': '#8888ff'
+    'CONTROL_ZONE':    '#ff9500',
+    'AIRPORT':         '#ffcc00',
+    'FED_STATE_AUTH':  '#ffa502',
+    'NATIONAL_PARK':   '#2ed573',
+    'BIRD_RESERVE':    '#2ed573',
+    'FFH_AREA':        '#2ed573',
+    'NATURE_RESERVE':  '#2ed573',
+    'MILITARY':        '#ff6b81',
+    'POLICE':          '#a55eea',
+    'PRISON':          '#a55eea',
+    'POPULATEDAREA':   '#8888ff',
+    'AIRFIELD_LAW':    '#ffcc00',
+    'HOSPITAL':        '#ff6b81',
+    'INDUSTRY':        '#8888ff',
+    'HIGHWAY':         '#8b949e',
+    'MOTORWAY':        '#8b949e',
+    'RAILWAY_FACILITY':'#8b949e',
+    '_default':        '#8888ff'
   };
 
   // ── Init map — zoom 17 to match original ─────────────────────────────────

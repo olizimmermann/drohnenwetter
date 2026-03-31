@@ -33,15 +33,16 @@
 
   .brand {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: .75rem;
+    flex-direction: column;
+    gap: .4rem;
     margin-bottom: 1.5rem;
   }
 
-  .brand > div:first-child {
-    min-width: 0;   /* allow flex to shrink the text side */
-    overflow: hidden;
+  .brand-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
   }
 
   .brand-name {
@@ -55,7 +56,6 @@
   .brand-sub {
     font-size: 11px;
     color: var(--muted);
-    margin-top: 3px;
   }
 
   label {
@@ -167,19 +167,19 @@
 <main class="page">
   <div class="card hero-card">
     <div class="brand">
-      <div>
+      <div class="brand-top">
         <h1 class="brand-name">drohnenwetter.de</h1>
-        <div class="brand-sub">
-          <span data-de>Wetter &amp; Luftraum · Deutschland · <span style="color: #ffab44;">beta {{appVersion}}</span></span>
-          <span data-en>Weather &amp; Airspace · Germany · <span style="color: #ffab44;">beta {{appVersion}}</span></span>
+        <div class="controls">
+          <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark/light mode">☀️</button>
+          <div class="lang-toggle">
+            <button class="lang-btn" data-l="de" onclick="setLang('de')">DE</button>
+            <button class="lang-btn" data-l="en" onclick="setLang('en')">EN</button>
+          </div>
         </div>
       </div>
-      <div class="controls">
-        <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark/light mode">☀️</button>
-        <div class="lang-toggle">
-          <button class="lang-btn" data-l="de" onclick="setLang('de')">DE</button>
-          <button class="lang-btn" data-l="en" onclick="setLang('en')">EN</button>
-        </div>
+      <div class="brand-sub">
+        <span data-de>Drohnen-Wettercheck &amp; Luftraum · Deutschland · <span style="color: #ffab44;">v{{appVersion}}</span></span>
+        <span data-en>Drone Weather &amp; Airspace Check · Germany · <span style="color: #ffab44;">v{{appVersion}}</span></span>
       </div>
     </div>
 
@@ -228,6 +228,14 @@
       <span data-de>Nur für Deutschland · Betrieb in VLOS · Keine Haftung</span>
       <span data-en>Germany only · VLOS operations · No liability</span>
     </div>
+
+    <!-- Crawlable description for search engines, visually subtle -->
+    <p style="font-size:10px;color:var(--muted);text-align:center;margin-top:.75rem;line-height:1.5" data-de>
+      Prüfe kostenlos ob Drohnenflug heute erlaubt ist: Windstärke, Temperatur, Taupunkt, Luftraumzonen (DiPUL/DFS), Kp-Index und Live-Luftverkehr für jeden Standort in Deutschland.
+    </p>
+    <p style="font-size:10px;color:var(--muted);text-align:center;margin-top:.75rem;line-height:1.5" data-en>
+      Free drone weather and airspace check for Germany: wind speed, temperature, dew point, airspace zones (DiPUL/DFS), Kp-Index and live air traffic for any location in Germany.
+    </p>
   </div>
 </main>
 

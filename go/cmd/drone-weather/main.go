@@ -31,7 +31,7 @@ var limiters sync.Map // map[string]*ipLimiter
 func getLimiter(ip string) *rate.Limiter {
 	now := time.Now()
 	v, _ := limiters.LoadOrStore(ip, &ipLimiter{
-		limiter:  rate.NewLimiter(rate.Every(time.Minute/5), 5),
+		limiter:  rate.NewLimiter(rate.Every(time.Minute/10), 10),
 		lastSeen: now,
 	})
 	il := v.(*ipLimiter)
@@ -88,6 +88,7 @@ func securityHeadersMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: https://*.tile.openstreetmap.org https://uas-betrieb.de; connect-src 'self' https://uas-betrieb.de; frame-ancestors 'none'")
 		next.ServeHTTP(w, r)
 	})
 }

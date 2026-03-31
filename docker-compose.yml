@@ -1,5 +1,5 @@
 services:
-  safeflight-app:
+  drohnenwetter-app:
     build:
       context: ./go
       dockerfile: Dockerfile
@@ -10,7 +10,7 @@ services:
       - TEMPLATE_DIR=/app/templates
       - STATIC_DIR=/app/static
     networks:
-      - safeflight-net
+      - drohnenwetter-net
     deploy:
       replicas: 3
     restart: always
@@ -21,10 +21,10 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - safeflight-app
+      - drohnenwetter-app
     networks:
-      - safeflight-net
+      - drohnenwetter-net
     restart: always
 networks:
-  safeflight-net:
+  drohnenwetter-net:
     driver: bridge

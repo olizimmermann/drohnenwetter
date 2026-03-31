@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -46,7 +47,8 @@ func getToken() (string, error) {
 	}
 
 	dipulToken.token = resp.Token
-	dipulToken.expires = time.Now().Add(28 * time.Minute)
+	jitter := time.Duration(rand.Intn(60)) * time.Second
+	dipulToken.expires = time.Now().Add(28*time.Minute - jitter)
 	return dipulToken.token, nil
 }
 

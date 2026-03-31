@@ -228,11 +228,13 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Serialize zones to JSON for direct injection into the Leaflet map script.
 	zonesJSON, err := json.Marshal(fetched.zones)
 	if err != nil {
+		log.Printf("[results] zones marshal error: %v", err)
 		zonesJSON = []byte("[]")
 	}
 
 	trafficJSON, err := json.Marshal(fetched.traffic)
 	if err != nil {
+		log.Printf("[results] traffic marshal error: %v", err)
 		trafficJSON = []byte("[]")
 	}
 

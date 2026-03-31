@@ -181,3 +181,4 @@ go/vendor/
 .idea/
 *.swp
 credentials.json
+20250327-weather-service-public.2.0.0.openapi.yaml

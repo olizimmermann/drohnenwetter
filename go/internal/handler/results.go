@@ -11,8 +11,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/olizimmermann/drone-weather/internal/api"
-	"github.com/olizimmermann/drone-weather/internal/assessment"
+	"github.com/olizimmermann/drohnenwetter/internal/api"
+	"github.com/olizimmermann/drohnenwetter/internal/assessment"
 )
 
 type ResultsHandler struct {

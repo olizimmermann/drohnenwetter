@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/olizimmermann/drone-weather/internal/api"
+	"github.com/olizimmermann/drohnenwetter/internal/api"
 )
 
 // ZoneInfoHandler proxies a DiPUL WMS GetFeatureInfo request for a given

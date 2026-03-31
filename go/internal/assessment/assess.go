@@ -5,7 +5,7 @@ import (
 	"math"
 	"sort"
 
-	"github.com/olizimmermann/drone-weather/internal/api"
+	"github.com/olizimmermann/drohnenwetter/internal/api"
 )
 
 // AltEntry holds a measurement at one altitude, pre-sorted by Height.

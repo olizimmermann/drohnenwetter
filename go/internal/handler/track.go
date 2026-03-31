@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/olizimmermann/drone-weather/internal/api"
+	"github.com/olizimmermann/drohnenwetter/internal/api"
 )
 
 var icao24Re = regexp.MustCompile(`^[0-9a-f]{6}$`)

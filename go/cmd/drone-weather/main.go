@@ -12,8 +12,8 @@ import (
 
 	"golang.org/x/time/rate"
 
-	"github.com/olizimmermann/drone-weather/internal/assessment"
-	"github.com/olizimmermann/drone-weather/internal/handler"
+	"github.com/olizimmermann/drohnenwetter/internal/assessment"
+	"github.com/olizimmermann/drohnenwetter/internal/handler"
 )
 
 // version is injected at build time via -ldflags="-X main.version=x.y"

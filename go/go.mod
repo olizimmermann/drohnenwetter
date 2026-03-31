@@ -1,4 +1,4 @@
-module github.com/olizimmermann/drone-weather
+module github.com/olizimmermann/drohnenwetter
 
 go 1.23
 

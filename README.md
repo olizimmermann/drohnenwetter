@@ -1,8 +1,8 @@
-# 🛸 Drone Weather
+# 🛸 Drohnenwetter
 
 Real-time weather and airspace safety assessment for **DJI Matrice 30T (M30T)** drone operators in Germany.
 
-[![Daily Health Check](https://github.com/olizimmermann/drone-weather/actions/workflows/daily-health.yml/badge.svg)](https://github.com/olizimmermann/drone-weather/actions/workflows/daily-health.yml)
+[![Daily Health Check](https://github.com/olizimmermann/drohnenwetter/actions/workflows/daily-health.yml/badge.svg)](https://github.com/olizimmermann/drohnenwetter/actions/workflows/daily-health.yml)
 
 ![Drone Weather](SafeFlight.png)
 
@@ -10,10 +10,11 @@ Real-time weather and airspace safety assessment for **DJI Matrice 30T (M30T)** 
 
 ## Features
 
-- **Safety assessment** — evaluates wind speed (per altitude), gusts, temperature, dew point, and geomagnetic activity against M30T operating limits
+- **Safety assessment** — wind speed (per altitude), gusts, temperature, dew point, and geomagnetic activity evaluated against M30T operating limits
 - **Airspace overlay** — DiPUL/DFS WMS with 32 layer types (control zones, nature reserves, military areas, …)
-- **Affected zones** — API-sourced GeoJSON polygons for your exact location, rendered on the map with popups
-- **Live air traffic** — nearby aircraft (✈️ fixed-wing, 🚁 helicopters, 🛩 gliders, 🛸 UAVs) from OpenSky Network, auto-refreshed every 15 seconds while the page is open
+- **Affected zones** — API-sourced GeoJSON polygons for your exact location, rendered on the map with popups and click-to-inspect details
+- **Cloud base** — nearest airport TAF parsed for cloud base altitude
+- **Live air traffic** — nearby aircraft (✈️ fixed-wing, 🚁 helicopters, 🛩 gliders, 🛸 UAVs) from OpenSky Network, auto-refreshed every 15 seconds
 - **Parallel API calls** — all data sources fetched concurrently (UTM, OpenWeatherMap, Kp-Index, DiPUL, OpenSky)
 - **Bilingual** — German / English toggle, persisted in localStorage
 - **Dark & light mode** — toggle, persisted in localStorage
@@ -29,7 +30,8 @@ Real-time weather and airspace safety assessment for **DJI Matrice 30T (M30T)** 
 | [DFS UTM](https://utm.dfs.de) | Wind & temperature forecast at 10 / 50 / 100 / 150 m AGL |
 | [OpenWeatherMap](https://openweathermap.org) | Current dew point |
 | [GFZ Potsdam](https://www.gfz-potsdam.de) | Kp-Index (geomagnetic activity) |
-| [DiPUL / DFS](https://uas-betrieb.de) | Airspace zones & WMS overlay |
+| [DiPUL / DFS](https://uas-betrieb.de) | Airspace zones, WMS overlay & zone details |
+| [DFS TAF](https://www.dfs.de) | Cloud base from nearest airport TAF |
 | [OpenSky Network](https://opensky-network.org) | Live air traffic (state vectors, ~11 km radius) |
 | [HERE Maps](https://www.here.com) | Address geocoding (Germany only) |
 | [OpenStreetMap](https://www.openstreetmap.org) | Base map tiles |
@@ -52,6 +54,7 @@ Real-time weather and airspace safety assessment for **DJI Matrice 30T (M30T)** 
 ## Stack
 
 - **Language:** Go 1.23 — `net/http`, `html/template`, no web framework
+- **Version:** `0.7`
 - **Dependencies:** [`golang.org/x/time/rate`](https://pkg.go.dev/golang.org/x/time/rate) (rate limiting)
 - **Map:** Leaflet.js + OpenStreetMap + DiPUL WMS
 - **Deploy:** Docker Compose — 3 app replicas + Nginx reverse proxy
@@ -63,34 +66,45 @@ Real-time weather and airspace safety assessment for **DJI Matrice 30T (M30T)** 
 ## Project Structure
 
 ```
-drone-weather/
-├── go/                          # Go application (primary)
+drohnenwetter/
+├── go/                          # Go application
 │   ├── cmd/drone-weather/
-│   │   └── main.go              # Entry point, server, rate limiting
+│   │   └── main.go              # Entry point, server, rate limiting, middleware
 │   ├── internal/
 │   │   ├── api/
 │   │   │   ├── client.go        # Shared HTTP client (8 s timeout)
 │   │   │   ├── geocode.go       # HERE Maps geocoding
 │   │   │   ├── weather.go       # DFS UTM + OpenWeatherMap + Kp-Index
 │   │   │   ├── dipul.go         # DiPUL token cache + zone fetching
+│   │   │   ├── wms.go           # DiPUL WMS GetFeatureInfo (zone click details)
+│   │   │   ├── metar.go         # Cloud base from nearest airport TAF
 │   │   │   └── opensky.go       # OpenSky OAuth2 token cache + traffic fetch
 │   │   ├── assessment/
 │   │   │   └── assess.go        # Safety evaluation logic
 │   │   └── handler/
 │   │       ├── home.go          # GET /
 │   │       ├── results.go       # POST /results — parallel fetch & render
+│   │       ├── zone-info.go     # GET /zone-info — zone click details (GeoJSON)
 │   │       ├── traffic.go       # GET /traffic — live aircraft JSON
-│   │       └── track.go         # GET /track — flight track proxy
+│   │       ├── track.go         # GET /track — flight track proxy
+│   │       └── util.go          # Shared handler utilities
 │   ├── templates/
 │   │   ├── base.html            # Shared CSS, dark/light mode, i18n, footer
 │   │   ├── index.html           # Landing page
-│   │   └── results.html         # Dashboard: metrics, map, zones, live traffic
-│   ├── static/                  # Favicons, manifest
+│   │   ├── results.html         # Dashboard: metrics, map, zones, live traffic
+│   │   ├── impressum.html       # Legal notice
+│   │   └── datenschutz.html     # Privacy policy
+│   ├── static/                  # Favicons, manifest, robots.txt, sitemap
 │   ├── Dockerfile
 │   ├── go.mod
 │   └── go.sum
 ├── nginx/
 │   └── mt30.drone-weather.com.conf
+├── checks/
+│   └── smoke.sh                 # Smoke tests against live site
+├── .github/
+│   └── workflows/
+│       └── daily-health.yml     # Daily automated health check (07:00 UTC)
 ├── docker-compose.yml
 └── .env                         # API keys (not committed)
 ```
@@ -130,7 +144,7 @@ OPENSKY_CLIENT_SECRET=your_opensky_client_secret
 docker compose up --build
 ```
 
-The app is then available at **http://localhost**.
+The app is then available at **http://localhost:8080**.
 
 ### Logs
 
@@ -153,6 +167,13 @@ HERE_API_KEY=... OPENWEATHER_TOKEN=... \
   go run ./cmd/drone-weather                      # run locally on :8080
 ```
 
+### Smoke tests
+
+```bash
+./checks/smoke.sh                          # test live site
+./checks/smoke.sh http://localhost:8080    # test local instance
+```
+
 ---
 
 ## Deployment
@@ -160,9 +181,9 @@ HERE_API_KEY=... OPENWEATHER_TOKEN=... \
 The included `docker-compose.yml` runs **3 app replicas** behind Nginx.
 Designed to sit behind Cloudflare (real client IP extracted from `CF-Connecting-IP`).
 
-Domains in use: `mt30.drone-weather.com`, `m30t.drone-weather.com`
+Live at: [drohnenwetter.de](https://drohnenwetter.de)
 
-> **Security note:** The app itself does not terminate TLS. Run it exclusively behind Nginx + Cloudflare (or another TLS-terminating proxy). Do **not** expose the Go app directly on port 8080 to the public internet — API keys are forwarded server-side but the address form data travels in plain HTTP between client and proxy if TLS is not enforced at the edge.
+> **Security note:** The app does not terminate TLS. Run it exclusively behind Nginx + Cloudflare (or another TLS-terminating proxy). Do **not** expose the Go app directly on port 8080 to the public internet.
 
 ---
 

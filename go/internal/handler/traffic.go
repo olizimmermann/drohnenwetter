@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/olizimmermann/drone-weather/internal/api"
+	"github.com/olizimmermann/drohnenwetter/internal/api"
 )
 
 // TrafficHandler returns live nearby aircraft as JSON.

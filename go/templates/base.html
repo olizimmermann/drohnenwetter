@@ -14,8 +14,8 @@
   {{/* ── Homepage: full SEO ── */}}
   {{/* Title: ~55 chars — fits Google's ~60-char pixel budget */}}
   <title>Drohnenwetter.de – Wetter &amp; Luftraumcheck für Drohnen</title>
-  <meta name="description" content="Echtzeit-Wettercheck und Luftraumanalyse für legale Drohnenflüge in Deutschland. Wind, Temperatur, Taupunkt, DiPUL-Luftraumzonen und Kp-Index – optimiert für DJI Matrice 30 (M30T).">
-  <meta name="keywords" content="Drohnenwetter, Drohnen Wetter Deutschland, Drohnenflug Check, Luftraum Check Drohne, DJI Matrice 30 Wetter, M30T Flugcheck, DiPUL Luftraumzonen, Kp-Index Drohne, VLOS Drohne, drohnenwetter.de, drone weather Germany, airspace check Germany, drone flight check Germany">
+  <meta name="description" content="Kostenloser Drohnen-Wettercheck für Deutschland: Wind, Temperatur, Taupunkt, DiPUL-Luftraumzonen und Kp-Index. Sofort prüfen ob der Drohnenflug heute erlaubt und sicher ist.">
+  <meta name="keywords" content="Drohnenwetter, Drohnen Wetter Deutschland, Drohnenflug Check, Drohne fliegen Wetter, Drohnenflug erlaubt heute, Luftraum Check Drohne, Drohnen App Deutschland, Flugzone Drohne Deutschland, DJI Wetter Check, DJI Mini Wetter, DJI Air Wetter, DJI Matrice 30 Wetter, M30T Flugcheck, UAS Wetter Check, DiPUL Luftraumzonen, Kp-Index Drohne, VLOS Drohne, EU Drohnenverordnung, open category drone, Drohne Windstärke, Drohnenflug legal, drone weather Germany, airspace check Germany, drone flight check Germany, is it safe to fly drone Germany, BOS Drohne, Behörden Drohne, Polizei Drohne, Feuerwehr Drohne, Rettungsdienst Drohne">
   <meta name="robots" content="index, follow">
   <meta name="author" content="drohnenwetter.de">
   <meta name="geo.region" content="DE">
@@ -50,7 +50,7 @@
     "@type": "WebApplication",
     "name": "drohnenwetter.de",
     "url": "https://drohnenwetter.de",
-    "description": "Echtzeit-Wettercheck und Luftraumanalyse für legale Drohnenflüge in Deutschland. Wind, Temperatur, Taupunkt, DiPUL-Luftraumzonen und Kp-Index.",
+    "description": "Kostenloser Drohnen-Wettercheck für Deutschland. Prüfe ob Drohnenflug heute erlaubt und sicher ist: Wind, Temperatur, Taupunkt, DiPUL-Luftraumzonen, Kp-Index und Livekarte.",
     "applicationCategory": "UtilitiesApplication",
     "operatingSystem": "Web",
     "inLanguage": ["de", "en"],
@@ -109,6 +109,25 @@
       --muted:    #8b949e;
       --radius:   12px;
       --shadow:   0 4px 24px rgba(0,0,0,.4);
+
+      /* ── Zone colours (match ZONE_COLORS in results.html) ── */
+      --zone-CONTROL_ZONE:   #ff9500;
+      --zone-AIRPORT:        #ffcc00;
+      --zone-FED_STATE_AUTH: #ffa502;
+      --zone-NATIONAL_PARK:  #2ed573;
+      --zone-BIRD_RESERVE:   #2ed573;
+      --zone-FFH_AREA:       #2ed573;
+      --zone-NATURE_RESERVE: #2ed573;
+      --zone-MILITARY:       #ff6b81;
+      --zone-POLICE:         #a55eea;
+      --zone-PRISON:         #a55eea;
+      --zone-POPULATEDAREA:  #8888ff;
+      --zone-AIRFIELD_LAW:   #ffcc00;
+      --zone-HOSPITAL:       #ff6b81;
+      --zone-INDUSTRY:       #8888ff;
+      --zone-HIGHWAY:        #8b949e;
+      --zone-MOTORWAY:       #8b949e;
+      --zone-RAILWAY_FACILITY:#8b949e;
     }
 
     /* ── Light mode override ── */

@@ -81,7 +81,7 @@ func Assess(utm *api.UTMResponse, ow *api.OWResponse, kp float64) *Assessment {
 			a.TempWarnings = append(a.TempWarnings, fmt.Sprintf("%.1f°C [%s]", t.Value, key))
 		}
 		// Dew-point fog risk: record first affected altitude in the global warning
-		if dewWarn && a.DewPointOK {
+		if dewWarn && a.DewPointOK && ow != nil {
 			a.DewPointOK = false
 			a.Flyable = false
 			a.DewPointWarning = fmt.Sprintf("Taupunkt %.1f°C nahe Temperatur %.1f°C [%s] – Nebel- und Klareisbildungsgefahr",

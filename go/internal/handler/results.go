@@ -210,7 +210,7 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var hasRedZone, hasOrangeZone bool
 	for _, z := range fetched.zones {
 		switch z.TypeCode {
-		case "FLIGHT_RESTRICTION":
+		case "FLIGHT_RESTRICTION", "U_NFZ":
 			hasRedZone = true
 		case "CONTROL_ZONE", "AIRPORT", "AIRFIELD_LAW", "MILITARY":
 			hasOrangeZone = true

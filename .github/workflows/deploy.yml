@@ -1,0 +1,61 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy-1:
+    name: Deploy to server 1
+    runs-on: [self-hosted, drohnenwetter-de-1]
+    steps:
+      - name: Pull latest code
+        run: git -C ${{ github.workspace }} pull origin main
+
+      - name: Rebuild and restart app
+        run: |
+          cd ${{ github.workspace }}
+          docker compose up -d --build drohnenwetter-app
+
+      - name: Health check
+        run: |
+          for i in $(seq 1 12); do
+            status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health)
+            if [ "$status" = "200" ]; then
+              echo "Health check passed (attempt $i)"
+              exit 0
+            fi
+            echo "Attempt $i: got $status, retrying in 5s..."
+            sleep 5
+          done
+          echo "Health check failed after 60s"
+          exit 1
+
+  deploy-2:
+    name: Deploy to server 2
+    runs-on: [self-hosted, drohnenwetter-de-2]
+    needs: deploy-1
+    steps:
+      - name: Pull latest code
+        run: git -C ${{ github.workspace }} pull origin main
+
+      - name: Rebuild and restart app
+        run: |
+          cd ${{ github.workspace }}
+          docker compose up -d --build drohnenwetter-app
+
+      - name: Health check
+        run: |
+          for i in $(seq 1 12); do
+            status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health)
+            if [ "$status" = "200" ]; then
+              echo "Health check passed (attempt $i)"
+              exit 0
+            fi
+            echo "Attempt $i: got $status, retrying in 5s..."
+            sleep 5
+          done
+          echo "Health check failed after 60s"
+          exit 1

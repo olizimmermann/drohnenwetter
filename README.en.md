@@ -4,6 +4,7 @@ Real-time weather and airspace safety assessment for **DJI Matrice 30T (M30T)** 
 
 🇩🇪 [Deutsche Version](README.md)
 
+[![Deploy](https://github.com/olizimmermann/drohnenwetter/actions/workflows/deploy.yml/badge.svg)](https://github.com/olizimmermann/drohnenwetter/actions/workflows/deploy.yml)
 [![Daily Health Check](https://github.com/olizimmermann/drohnenwetter/actions/workflows/daily-health.yml/badge.svg)](https://github.com/olizimmermann/drohnenwetter/actions/workflows/daily-health.yml)
 
 ![Drohnenwetter](drohnenwetter.png)

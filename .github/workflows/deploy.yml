@@ -21,6 +21,7 @@ jobs:
 
       - name: Health check
         run: |
+          sleep 5
           for i in $(seq 1 12); do
             status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/health)
             if [ "$status" = "200" ]; then

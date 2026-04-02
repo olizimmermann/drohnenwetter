@@ -26,7 +26,7 @@ func TrafficHandler(w http.ResponseWriter, r *http.Request) {
 	aircraft, err := api.FetchNearbyTraffic(lat, lon)
 	if err != nil {
 		log.Printf("[traffic] %.5f,%.5f: %v", lat, lon, err)
-		http.Error(w, "traffic unavailable", http.StatusBadGateway)
+		http.Error(w, "traffic unavailable", http.StatusServiceUnavailable)
 		return
 	}
 

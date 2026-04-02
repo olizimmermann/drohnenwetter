@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/url"
 	"os"
@@ -17,9 +18,10 @@ const openskyRadius = 0.1
 // ── OAuth2 token cache ────────────────────────────────────────────────────────
 
 type openskyTokenCache struct {
-	mu      sync.Mutex
-	token   string
-	expires time.Time
+	mu          sync.Mutex
+	token       string
+	expires     time.Time
+	retryAfter  time.Time // backoff after auth failure
 }
 
 var openskyToken openskyTokenCache
@@ -40,6 +42,11 @@ func getOpenskyToken() (string, error) {
 		return "", nil // no credentials — fall back to anonymous
 	}
 
+	// Don't hammer the auth server after a recent failure.
+	if !openskyToken.retryAfter.IsZero() && time.Now().Before(openskyToken.retryAfter) {
+		return "", nil // anonymous fallback during backoff
+	}
+
 	form := url.Values{
 		"grant_type":    {"client_credentials"},
 		"client_id":     {clientID},
@@ -53,7 +60,9 @@ func getOpenskyToken() (string, error) {
 
 	body, err := doRequest(req)
 	if err != nil {
-		return "", fmt.Errorf("OpenSky token fetch: %w", err)
+		log.Printf("[opensky] token fetch failed (%v) — falling back to anonymous for 5 min", err)
+		openskyToken.retryAfter = time.Now().Add(5 * time.Minute)
+		return "", nil // graceful fallback, no error propagated
 	}
 
 	var resp struct {

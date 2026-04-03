@@ -1,4 +1,4 @@
-var CACHE_NAME = 'drohnenwetter-v1';
+var CACHE_NAME = 'drohnenwetter-v2';
 var PRECACHE = [
   '/',
   '/static/drohnenwetter-dark.svg',
@@ -30,8 +30,11 @@ self.addEventListener('fetch', function(e) {
   // Only cache GET requests for same-origin navigation/assets
   if (e.request.method !== 'GET') return;
 
-  // Never cache API responses — always go to network
+  // Skip cross-origin requests (OSM tiles, WMS, CDN) — let the browser handle them
   var url = new URL(e.request.url);
+  if (url.origin !== self.location.origin) return;
+
+  // Never cache API responses — always go to network
   if (['/results', '/zone-info', '/traffic', '/track', '/health'].indexOf(url.pathname) !== -1) return;
 
   e.respondWith(

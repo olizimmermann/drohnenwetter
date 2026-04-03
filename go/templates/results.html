@@ -134,6 +134,19 @@
     color: var(--muted); text-transform: uppercase; letter-spacing: .06em;
     border-bottom: 1px solid var(--border);
   }
+  .detail-title-row {
+    padding: .7rem 1rem; font-size: 12px; font-weight: 600;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .06em;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .unit-toggle {
+    background: var(--border); color: var(--text); border: none;
+    border-radius: 4px; padding: .15rem .5rem; font-size: 11px;
+    cursor: pointer; text-transform: none; letter-spacing: 0;
+  }
+  .unit-toggle:hover { background: var(--muted); }
+  .unit-toggle:focus { outline: none; background: var(--border); }
   .detail-row {
     display: flex; justify-content: space-between; align-items: center;
     padding: .5rem 1rem; font-size: 13px;
@@ -156,11 +169,15 @@
   }
   .warning-item .dismiss-btn, .data-warning-item .dismiss-btn {
     margin-left: auto; flex-shrink: 0;
-    background: none; border: none; cursor: pointer;
-    font-size: 15px; line-height: 1; padding: 0 2px;
-    color: inherit; opacity: .45;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 6px; cursor: pointer;
+    font-size: 11px; padding: .35rem .6rem;
+    min-width: 44px; min-height: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: inherit; opacity: .7; white-space: nowrap;
   }
-  .warning-item .dismiss-btn:hover, .data-warning-item .dismiss-btn:hover { opacity: .9; }
+  .warning-item .dismiss-btn:hover, .data-warning-item .dismiss-btn:hover { opacity: 1; background: rgba(255,255,255,.2); }
+  .warning-item .dismiss-btn:focus, .data-warning-item .dismiss-btn:focus { outline: none; }
   .data-warning-item {
     display: flex; align-items: center; gap: .5rem;
     padding: .55rem .9rem;
@@ -258,7 +275,7 @@
     <div class="warning-item">🚫
       <span data-de>Achtung: Eingeschränkter oder verbotener Luftraum (ED-R/D/P) an diesem Standort. Flug ohne Genehmigung nicht zulässig.</span>
       <span data-en>Warning: Restricted or prohibited airspace (ED-R/D/P) at this location. Flight without authorisation not permitted.</span>
-      <button class="dismiss-btn" onclick="dismissZoneWarning(this)" title="Ausblenden / Dismiss">X</button>
+      <button class="dismiss-btn" onclick="dismissZoneWarning(this)" title="Ausblenden / Dismiss">OK</button>
     </div>
   </div>
   {{else if .HasOrangeZone}}
@@ -266,7 +283,7 @@
     <div class="warning-item" style="background:rgba(255,149,0,.07);border-color:rgba(255,149,0,.3);color:#e08800">🟠
       <span data-de>Hinweis: Kontrollzone oder Militärgebiet an diesem Standort. Koordination mit zuständiger Stelle erforderlich.</span>
       <span data-en>Notice: Control zone or military area at this location. Coordination with the responsible authority required.</span>
-      <button class="dismiss-btn" onclick="dismissZoneWarning(this)" title="Ausblenden / Dismiss">X</button>
+      <button class="dismiss-btn" onclick="dismissZoneWarning(this)" title="Ausblenden / Dismiss">OK</button>
     </div>
   </div>
   {{end}}
@@ -278,28 +295,28 @@
     <div class="data-warning-item">⚠️
       <span data-de>Taupunkt-Daten nicht verfügbar (OpenWeatherMap) – Nebelgefahr kann nicht berechnet werden.</span>
       <span data-en>Dew point data unavailable (OpenWeatherMap) – fog risk cannot be assessed.</span>
-      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">X</button>
+      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">OK</button>
     </div>
     {{end}}
     {{if .KpFailed}}
     <div class="data-warning-item">⚠️
       <span data-de>Kp-Index nicht verfügbar (GFZ Potsdam) – GPS-Zuverlässigkeit kann nicht bewertet werden.</span>
       <span data-en>Kp-Index unavailable (GFZ Potsdam) – GPS reliability cannot be assessed.</span>
-      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">X</button>
+      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">OK</button>
     </div>
     {{end}}
     {{if .DiPULFailed}}
     <div class="data-warning-item">⚠️
       <span data-de>Luftraumdaten nicht verfügbar (DiPUL) – Luftraum bitte manuell prüfen.</span>
       <span data-en>Airspace data unavailable (DiPUL) – please check airspace manually.</span>
-      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">X</button>
+      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">OK</button>
     </div>
     {{end}}
     {{if .TrafficFailed}}
     <div class="data-warning-item">⚠️
       <span data-de>Flugverkehr-Daten nicht verfügbar (OpenSky) – Luftverkehr bitte manuell prüfen.</span>
       <span data-en>Live traffic data unavailable (OpenSky) – check air traffic manually.</span>
-      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">X</button>
+      <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">OK</button>
     </div>
     {{end}}
   </div>
@@ -308,10 +325,10 @@
   {{/* ── Safety warnings ── */}}
   {{if or $a.WindWarnings $a.TempWarnings $a.DewPointWarning $a.KpWarning}}
   <div class="warnings-section">
-    {{range $a.WindWarnings}}<div class="warning-item">💨 {{.}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">X</button></div>{{end}}
-    {{range $a.TempWarnings}}<div class="warning-item">🌡 {{.}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">X</button></div>{{end}}
-    {{if $a.DewPointWarning}}<div class="warning-item">🌫 <span data-de>{{$a.DewPointWarning}}</span><span data-en>{{$a.DewPointWarningEN}}</span><button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">X</button></div>{{end}}
-    {{if $a.KpWarning}}<div class="warning-item">🧲 {{$a.KpWarning}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">X</button></div>{{end}}
+    {{range $a.WindWarnings}}<div class="warning-item">💨 {{.}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
+    {{range $a.TempWarnings}}<div class="warning-item">🌡 {{.}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
+    {{if $a.DewPointWarning}}<div class="warning-item">🌫 <span data-de>{{$a.DewPointWarning}}</span><span data-en>{{$a.DewPointWarningEN}}</span><button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
+    {{if $a.KpWarning}}<div class="warning-item">🧲 {{$a.KpWarning}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
   </div>
   {{end}}
 
@@ -454,18 +471,23 @@
   {{/* ── Detail tables ── */}}
   <div class="detail-grid">
 
-    <div class="detail-card">
-      <div class="detail-title" data-de>Wind nach Höhe</div>
-      <div class="detail-title" data-en>Wind by Altitude</div>
+    <div class="detail-card" id="wind-card">
+      <div class="detail-title-row">
+        <div>
+          <span data-de>Wind nach Höhe</span>
+          <span data-en>Wind by Altitude</span>
+        </div>
+        <button class="unit-toggle" onclick="toggleWindUnit()" id="wind-unit-btn">m/s</button>
+      </div>
       {{range $a.WindSpeed}}
       <div class="detail-row">
         <span class="detail-key">{{.Key}} AGL</span>
-        <span class="detail-val {{if not .OK}}warn{{else if .Warn}}amber{{else}}ok{{end}}">{{printf "%.1f" .Value}} m/s</span>
+        <span class="detail-val {{if not .OK}}warn{{else if .Warn}}amber{{else}}ok{{end}}" data-ms="{{printf "%.1f" .Value}}" data-kmh="{{printf "%.1f" (msToKmh .Value)}}">{{printf "%.1f" .Value}} m/s</span>
       </div>
       {{end}}
       <div class="detail-row" style="border-top:1px solid var(--border)">
         <span class="detail-key" data-de>Böen</span><span class="detail-key" data-en>Gusts</span>
-        <span class="detail-val {{if $gust.OK}}ok{{else}}warn{{end}}">{{printf "%.1f" $gust.Value}} m/s</span>
+        <span class="detail-val {{if $gust.OK}}ok{{else}}warn{{end}}" data-ms="{{printf "%.1f" $gust.Value}}" data-kmh="{{printf "%.1f" (msToKmh $gust.Value)}}">{{printf "%.1f" $gust.Value}} m/s</span>
       </div>
     </div>
 
@@ -955,6 +977,23 @@
 
 })();
 {{end}}
+
+  var windKmh = localStorage.getItem('windUnit') === 'kmh';
+  function toggleWindUnit() {
+    windKmh = !windKmh;
+    localStorage.setItem('windUnit', windKmh ? 'kmh' : 'ms');
+    applyWindUnit();
+  }
+  function applyWindUnit() {
+    var btn = document.getElementById('wind-unit-btn');
+    if (btn) { btn.textContent = windKmh ? 'km/h' : 'm/s'; btn.blur(); }
+    document.querySelectorAll('#wind-card .detail-val[data-ms]').forEach(function(el) {
+      el.textContent = windKmh
+        ? el.getAttribute('data-kmh') + ' km/h'
+        : el.getAttribute('data-ms') + ' m/s';
+    });
+  }
+  if (windKmh) applyWindUnit();
 </script>
 
 {{template "uiscript" .}}

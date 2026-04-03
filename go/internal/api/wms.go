@@ -81,6 +81,7 @@ func FetchZoneInfo(lat, lon float64) ([]byte, error) {
 	params.Set("HEIGHT", "256")
 	params.Set("I", "128")
 	params.Set("J", "128")
+	params.Set("FEATURE_COUNT", "50")
 
 	raw, err := doGet("https://uas-betrieb.de/geoservices/dipul/wms?"+params.Encode(), nil)
 	if err != nil {

@@ -3,6 +3,7 @@ package main
 import (
 	"html/template"
 	"log"
+	"math"
 	"net"
 	"net/http"
 	"os"
@@ -106,7 +107,8 @@ func loadTemplates(dir string) *template.Template {
 			}
 			return assessment.AltEntry{}
 		},
-		"add": func(a, b int) int { return a + b },
+		"add":   func(a, b int) int { return a + b },
+		"msToKmh": func(ms float64) float64 { return math.Round(ms*3.6*10) / 10 },
 	}
 	tmpl := template.New("").Funcs(funcMap)
 	tmpl = template.Must(tmpl.ParseGlob(dir + "/*.html"))

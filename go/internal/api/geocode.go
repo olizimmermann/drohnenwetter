@@ -41,7 +41,7 @@ func ReverseGeocode(lat, lon float64, hereAPIKey string) (*GeocodeResult, error)
 	rawURL := "https://revgeocode.search.hereapi.com/v1/revgeocode?" + params.Encode()
 
 	headers := map[string]string{
-		"User-Agent":      "safeflight/1.0",
+		"User-Agent":      "drohnenwetter/1.0",
 		"Accept":          "application/json",
 		"Accept-Language": "de-DE,de;q=0.9",
 	}
@@ -82,7 +82,7 @@ func Geocode(address, hereAPIKey string) (*GeocodeResult, error) {
 	rawURL := "https://geocode.search.hereapi.com/v1/geocode?" + params.Encode()
 
 	headers := map[string]string{
-		"User-Agent":      "safeflight/1.0",
+		"User-Agent":      "drohnenwetter/1.0",
 		"Accept":          "application/json",
 		"Accept-Language": "de-DE,de;q=0.9",
 	}

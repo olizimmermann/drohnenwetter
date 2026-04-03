@@ -71,7 +71,7 @@ Echtzeit-Wetter- und Luftraumbeurteilung für **DJI Matrice 30T (M30T)** Drohnen
 ```
 drohnenwetter/
 ├── go/                          # Go-Anwendung
-│   ├── cmd/drone-weather/
+│   ├── cmd/drohnenwetter/
 │   │   └── main.go              # Einstiegspunkt, Server, Rate Limiting, Middleware
 │   ├── internal/
 │   │   ├── api/
@@ -167,7 +167,7 @@ cd go
 go build ./...                                    # Kompilierungsprüfung
 HERE_API_KEY=... OPENWEATHER_TOKEN=... \
   OPENSKY_CLIENT_ID=... OPENSKY_CLIENT_SECRET=... \
-  go run ./cmd/drone-weather                      # lokal starten auf :8080
+  go run ./cmd/drohnenwetter                      # lokal starten auf :8080
 ```
 
 ### Smoke-Tests

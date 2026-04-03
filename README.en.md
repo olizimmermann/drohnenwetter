@@ -71,7 +71,7 @@ Real-time weather and airspace safety assessment for **DJI Matrice 30T (M30T)** 
 ```
 drohnenwetter/
 ├── go/                          # Go application
-│   ├── cmd/drone-weather/
+│   ├── cmd/drohnenwetter/
 │   │   └── main.go              # Entry point, server, rate limiting, middleware
 │   ├── internal/
 │   │   ├── api/
@@ -167,7 +167,7 @@ cd go
 go build ./...                                    # compile check
 HERE_API_KEY=... OPENWEATHER_TOKEN=... \
   OPENSKY_CLIENT_ID=... OPENSKY_CLIENT_SECRET=... \
-  go run ./cmd/drone-weather                      # run locally on :8080
+  go run ./cmd/drohnenwetter                     # run locally on :8080
 ```
 
 ### Smoke tests

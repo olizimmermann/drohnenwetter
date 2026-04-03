@@ -312,6 +312,11 @@ function toggleTheme() {
     <span><a href="https://de.allmetsat.com" target="_blank" rel="noopener">allmetsat.com</a> (METAR/TAF)</span>
   </div>
 </footer>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(function(){});
+}
+</script>
 </body>
 </html>
 {{end}}

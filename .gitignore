@@ -172,7 +172,7 @@ cython_debug/
 log.txt
 
 # Go build artifacts
-go/drone-weather
+go/drohnenwetter
 go/*.exe
 go/vendor/
 
@@ -182,3 +182,4 @@ go/vendor/
 *.swp
 credentials.json
 20250327-weather-service-public.2.0.0.openapi.yaml
+generate_favicons.py

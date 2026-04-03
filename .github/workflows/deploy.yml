@@ -7,9 +7,27 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Run tests
+        working-directory: go
+        run: go test ./... -count=1 -timeout 30s
+
+      - name: Build Docker image
+        run: docker build ./go
+
   deploy-1:
     name: Deploy to server 1
     runs-on: [self-hosted, drohnenwetter-de-1]
+    needs: test
     steps:
       - name: Pull latest code
         run: git -C ${{ github.workspace }} pull origin main

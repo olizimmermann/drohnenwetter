@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/olizimmermann/drohnenwetter/internal/api"
 	"github.com/olizimmermann/drohnenwetter/internal/assessment"
@@ -19,10 +20,18 @@ type ResultsHandler struct {
 	tmpl       *template.Template
 	hereAPIKey string
 	owToken    string
+	cache      *resultCache
 }
 
 func NewResultsHandler(tmpl *template.Template, hereAPIKey, owToken string) *ResultsHandler {
-	return &ResultsHandler{tmpl: tmpl, hereAPIKey: hereAPIKey, owToken: owToken}
+	rh := &ResultsHandler{
+		tmpl:       tmpl,
+		hereAPIKey: hereAPIKey,
+		owToken:    owToken,
+		cache:      newResultCache(1000, 5*time.Minute),
+	}
+	rh.cache.startCleanup(1 * time.Minute)
+	return rh
 }
 
 type resultsData struct {
@@ -57,6 +66,12 @@ type allFetched struct {
 }
 
 func (h *ResultsHandler) fetchAll(lat, lon float64, city string) *allFetched {
+	key := cacheKey(lat, lon)
+	if cached, ok := h.cache.get(key); ok {
+		log.Printf("[cache] hit for %s", key)
+		return cached
+	}
+
 	var wg sync.WaitGroup
 	out := &allFetched{}
 
@@ -86,6 +101,12 @@ func (h *ResultsHandler) fetchAll(lat, lon float64, city string) *allFetched {
 		out.traffic, out.errs[4] = api.FetchNearbyTraffic(lat, lon)
 	}()
 	wg.Wait()
+
+	// Cache only if the critical UTM data succeeded
+	if out.utm != nil && out.errs[0] == nil {
+		h.cache.set(key, out)
+	}
+
 	return out
 }
 

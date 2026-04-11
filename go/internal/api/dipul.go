@@ -42,8 +42,11 @@ func getToken() (string, error) {
 	var resp struct {
 		Token string `json:"token"`
 	}
-	if err := json.Unmarshal(body, &resp); err != nil || resp.Token == "" {
+	if err := json.Unmarshal(body, &resp); err != nil {
 		return "", fmt.Errorf("DiPUL token parse: %w", err)
+	}
+	if resp.Token == "" {
+		return "", fmt.Errorf("DiPUL token: empty token in response")
 	}
 
 	dipulToken.token = resp.Token

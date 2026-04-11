@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
+	"math"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -156,7 +158,8 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// GPS path: coordinates supplied by the browser
 		lat, errLat := strconv.ParseFloat(latStr, 64)
 		lon, errLon := strconv.ParseFloat(lonStr, 64)
-		if errLat != nil || errLon != nil || lat == 0 || lon == 0 {
+		if errLat != nil || errLon != nil || lat == 0 || lon == 0 ||
+			math.IsNaN(lat) || math.IsNaN(lon) || math.IsInf(lat, 0) || math.IsInf(lon, 0) {
 			h.renderError(w, "Ungültige GPS-Koordinaten.", "Invalid GPS coordinates.")
 			return
 		}
@@ -278,14 +281,20 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		WeatherFlyable: weatherFlyable,
 	}
 
-	if err := h.tmpl.ExecuteTemplate(w, "results.html", data); err != nil {
+	var buf bytes.Buffer
+	if err := h.tmpl.ExecuteTemplate(&buf, "results.html", data); err != nil {
 		log.Printf("[results] template error: %v", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
 	}
+	buf.WriteTo(w)
 }
 
 func (h *ResultsHandler) renderError(w http.ResponseWriter, de, en string) {
-	if err := h.tmpl.ExecuteTemplate(w, "results.html", resultsData{ErrorDE: de, ErrorEN: en}); err != nil {
+	var buf bytes.Buffer
+	if err := h.tmpl.ExecuteTemplate(&buf, "results.html", resultsData{ErrorDE: de, ErrorEN: en}); err != nil {
 		http.Error(w, de, http.StatusInternalServerError)
+		return
 	}
+	buf.WriteTo(w)
 }

@@ -76,7 +76,7 @@ func getOpenskyToken() (string, error) {
 	// Cache the token, refreshing 30s before expiry.
 	// If the server returns a very short-lived token, don't cache it at all
 	// to avoid an immediate-expiry loop.
-	ttl := time.Duration(resp.ExpiresIn-30)*time.Second - time.Duration(rand.Intn(60))*time.Second
+	ttl := time.Duration(resp.ExpiresIn-30)*time.Second - time.Duration(rand.Intn(30))*time.Second
 	if ttl <= 0 {
 		return resp.AccessToken, nil
 	}

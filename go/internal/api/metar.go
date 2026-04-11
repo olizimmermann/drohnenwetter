@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"math"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -108,7 +109,7 @@ func findAirport(city string) (string, string) {
 // ── TAF fetch + parse ─────────────────────────────────────────────────────────
 
 func fetchTAFPage(icao string) (string, error) {
-	body, err := doGet(allmetBase+"?icao="+icao, allmetHeaders)
+	body, err := doGet(allmetBase+"?icao="+url.QueryEscape(icao), allmetHeaders)
 	if err != nil {
 		return "", err
 	}

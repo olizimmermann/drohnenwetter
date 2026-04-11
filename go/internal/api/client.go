@@ -49,6 +49,9 @@ func newFormPost(apiURL string, form url.Values) (*http.Request, error) {
 	return req, nil
 }
 
+// maxResponseSize limits how much data we read from upstream APIs (10 MB).
+const maxResponseSize = 10 * 1024 * 1024
+
 func doRequest(req *http.Request) ([]byte, error) {
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -58,5 +61,5 @@ func doRequest(req *http.Request) ([]byte, error) {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("HTTP %d from %s", resp.StatusCode, req.URL)
 	}
-	return io.ReadAll(resp.Body)
+	return io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
 }

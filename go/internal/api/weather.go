@@ -65,7 +65,7 @@ type OWResponse struct {
 }
 
 func FetchUTMForecast(lat, lon float64) (*UTMResponse, error) {
-	berlin := time.FixedZone("CET", 1*60*60)
+	berlin, _ := time.LoadLocation("Europe/Berlin")
 	now := time.Now().In(berlin)
 	forecasts := []string{
 		now.Format("2006-01-02T15:04:05") + "Z",

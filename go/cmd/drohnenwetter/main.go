@@ -24,6 +24,7 @@ var version = "dev"
 
 type ipLimiter struct {
 	limiter  *rate.Limiter
+	mu       sync.Mutex
 	lastSeen time.Time
 }
 
@@ -36,7 +37,9 @@ func getLimiter(ip string) *rate.Limiter {
 		lastSeen: now,
 	})
 	il := v.(*ipLimiter)
+	il.mu.Lock()
 	il.lastSeen = now
+	il.mu.Unlock()
 	return il.limiter
 }
 
@@ -44,7 +47,11 @@ func cleanLimiters() {
 	for range time.Tick(5 * time.Minute) {
 		cutoff := time.Now().Add(-10 * time.Minute)
 		limiters.Range(func(k, v interface{}) bool {
-			if v.(*ipLimiter).lastSeen.Before(cutoff) {
+			il := v.(*ipLimiter)
+			il.mu.Lock()
+			expired := il.lastSeen.Before(cutoff)
+			il.mu.Unlock()
+			if expired {
 				limiters.Delete(k)
 			}
 			return true
@@ -52,6 +59,8 @@ func cleanLimiters() {
 	}
 }
 
+// clientIP extracts the real client IP, preferring Cloudflare's header.
+// NOTE: duplicated in internal/handler/util.go — keep both in sync.
 func clientIP(r *http.Request) string {
 	if cf := r.Header.Get("CF-Connecting-IP"); cf != "" {
 		return cf

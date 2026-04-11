@@ -694,6 +694,63 @@
   var TRAFFIC_INTERVAL = 15000; // ms
   var trafficTimer = null;
 
+  // ── Client-side position history for flight trails ───────────────────────
+  var MAX_TRAIL_POINTS = 120; // ~30 min at 15s interval
+  var posHistory = {};        // icao24 → [{lat, lon, time}]
+  var activeTrackLayer = null;
+  var activeTrackIcao = null;
+
+  function recordPositions(data) {
+    var seen = {};
+    (data || []).forEach(function(ac) {
+      if (!ac.lat || !ac.lon) return;
+      seen[ac.icao24] = true;
+      var hist = posHistory[ac.icao24] || (posHistory[ac.icao24] = []);
+      var last = hist[hist.length - 1];
+      // skip if position unchanged
+      if (last && last.lat === ac.lat && last.lon === ac.lon) return;
+      hist.push({ lat: ac.lat, lon: ac.lon, time: Date.now() });
+      if (hist.length > MAX_TRAIL_POINTS) hist.shift();
+    });
+    // prune aircraft that left the area (not seen for 2 min)
+    var now = Date.now();
+    Object.keys(posHistory).forEach(function(id) {
+      if (!seen[id]) {
+        var h = posHistory[id];
+        if (h.length && now - h[h.length - 1].time > 120000) delete posHistory[id];
+      }
+    });
+  }
+
+  function clearTrack() {
+    if (activeTrackLayer) { map.removeLayer(activeTrackLayer); activeTrackLayer = null; }
+    activeTrackIcao = null;
+  }
+
+  function drawTrack(icao24) {
+    if (activeTrackLayer) { map.removeLayer(activeTrackLayer); activeTrackLayer = null; }
+    var hist = posHistory[icao24];
+    if (!hist || hist.length < 2) return;
+    activeTrackLayer = L.layerGroup();
+    for (var i = 1; i < hist.length; i++) {
+      var opacity = 0.3 + 0.7 * (i / (hist.length - 1));
+      L.polyline([[hist[i-1].lat, hist[i-1].lon], [hist[i].lat, hist[i].lon]], {
+        color: '#00bfff', weight: 3, opacity: opacity, lineCap: 'round'
+      }).addTo(activeTrackLayer);
+    }
+    // start dot
+    L.circleMarker([hist[0].lat, hist[0].lon], {
+      radius: 4, color: '#00bfff', fillColor: '#fff', fillOpacity: 1, weight: 2
+    }).addTo(activeTrackLayer);
+    activeTrackLayer.addTo(map);
+  }
+
+  function showTrack(icao24) {
+    if (activeTrackIcao === icao24) { clearTrack(); return; }
+    activeTrackIcao = icao24;
+    drawTrack(icao24);
+  }
+
   var HELI_PREFIXES = ['CHX','ADAC','BPOL','SAR','ITH','HEMS','DRF','CHRIS'];
   function isHelicopter(ac) {
     if (ac.category === 8) return true;
@@ -744,6 +801,12 @@
 
   function renderTraffic(data) {
     trafficLayer.clearLayers();
+    recordPositions(data);
+    // Redraw active trail (aircraft moved), clear if gone
+    if (activeTrackIcao) {
+      if (posHistory[activeTrackIcao]) drawTrack(activeTrackIcao);
+      else clearTrack();
+    }
     var airborne = 0;
     (data || []).forEach(function(ac) {
       if (!ac.onGround) airborne++;
@@ -751,14 +814,15 @@
       var label = escapeHtml(ac.callsign || ac.icao24 || '?');
       var alt   = ac.baroAlt   ? (Math.round(ac.baroAlt)   + ' m')   : '?';
       var spd   = ac.velocity  ? (Math.round(ac.velocity)  + ' m/s') : '?';
-      L.marker([ac.lat, ac.lon], {icon: acIcon(ac)})
-        .bindPopup(
-          '<strong>' + label + '</strong>' +
+      var popupHtml = '<strong>' + label + '</strong>' +
           (ac.onGround ? ' <em>(ground)</em>' : '') +
           '<br>Alt: ' + escapeHtml(alt) + '&nbsp;&nbsp;Speed: ' + escapeHtml(spd) +
-          '<br><small style="color:#888">' + escapeHtml(ac.icao24) + '</small>'
-        )
+          '<br><small style="color:#888">' + escapeHtml(ac.icao24) + '</small>';
+      var marker = L.marker([ac.lat, ac.lon], {icon: acIcon(ac)})
+        .bindPopup(popupHtml, { offset: [0, -5] })
         .addTo(trafficLayer);
+      marker._icao24 = ac.icao24;
+      marker.on('click', function(e) { showTrack(e.target._icao24); });
     });
     var card  = document.getElementById('traffic-card');
     var count = document.getElementById('traffic-count');
@@ -808,10 +872,10 @@
             },
             onEachFeature: function(feature, layer) {
               var p = feature.properties || {};
-              var name  = p.name || p.designator || zone.typeCode;
-              var lower = p.lowerLimit || p.lowerLimitAltitude || '';
-              var upper = p.upperLimit || '';
-              var html  = '<strong>' + name + '</strong><br><em>' + zone.typeCode + '</em>';
+              var name  = escapeHtml(p.name || p.designator || zone.typeCode);
+              var lower = escapeHtml(p.lowerLimit || p.lowerLimitAltitude || '');
+              var upper = escapeHtml(p.upperLimit || '');
+              var html  = '<strong>' + name + '</strong><br><em>' + escapeHtml(zone.typeCode) + '</em>';
               if (lower || upper) html += '<br>' + lower + (upper ? ' – ' + upper : '');
               layer.bindPopup(html);
             }

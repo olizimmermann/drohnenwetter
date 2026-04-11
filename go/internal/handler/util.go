@@ -7,6 +7,7 @@ import (
 )
 
 // clientIP extracts the real client IP, preferring Cloudflare's header.
+// NOTE: duplicated in cmd/drohnenwetter/main.go — keep both in sync.
 func clientIP(r *http.Request) string {
 	if ip := r.Header.Get("Cf-Connecting-Ip"); ip != "" {
 		return ip

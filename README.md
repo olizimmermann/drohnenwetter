@@ -1,6 +1,6 @@
 # 🛸 Drohnenwetter
 
-Echtzeit-Wetter- und Luftraumbeurteilung für **DJI Matrice 30T (M30T)** Drohnen-Piloten in Deutschland.
+Echtzeit-Wetter- und Luftraumbewertung für Drohnen-Piloten in Deutschland.
 
 🇬🇧 [English version](README.en.md)
 
@@ -17,7 +17,7 @@ Echtzeit-Wetter- und Luftraumbeurteilung für **DJI Matrice 30T (M30T)** Drohnen
 - **Luftraumüberlagerung** — DiPUL/DFS WMS mit 32 Zonentypen (Kontrollzonen, Naturschutzgebiete, Militärgebiete, …)
 - **Betroffene Zonen** — API-basierte GeoJSON-Polygone für den genauen Standort, auf der Karte dargestellt mit Popups und Klick-Details
 - **Wolkenuntergrenze** — nächstgelegenes Flughafen-TAF wird nach Wolkenuntergrenze ausgewertet
-- **Luftverkehr live** — Flugzeuge in der Nähe (✈️ Starrflügler, 🚁 Hubschrauber, 🛩 Segelflugzeuge, 🛸 UAVs) über das OpenSky-Netzwerk, alle 15 Sekunden aktualisiert
+- **Luftverkehr live** — Flugzeuge in der Nähe (✈️ Starrflügler, 🚁 Hubschrauber, 🛩 Leichtflugzeuge, 🛸 UAVs) über das OpenSky-Netzwerk, alle 15 Sekunden aktualisiert
 - **Parallele API-Abfragen** — alle Datenquellen werden gleichzeitig abgerufen (UTM, OpenWeatherMap, Kp-Index, DiPUL, OpenSky)
 - **Zweisprachig** — Deutsch/Englisch umschaltbar, wird in localStorage gespeichert
 - **Hell- & Dunkelmodus** — umschaltbar, wird in localStorage gespeichert
@@ -57,7 +57,7 @@ Echtzeit-Wetter- und Luftraumbeurteilung für **DJI Matrice 30T (M30T)** Drohnen
 ## Technologie
 
 - **Sprache:** Go 1.23 — `net/http`, `html/template`, kein Web-Framework
-- **Version:** `0.8` (siehe [VERSION](go/VERSION))
+- **Version:** `0.9` (siehe [VERSION](go/VERSION))
 - **Abhängigkeiten:** [`golang.org/x/time/rate`](https://pkg.go.dev/golang.org/x/time/rate) (Rate Limiting)
 - **Karte:** Leaflet.js + OpenStreetMap + DiPUL WMS
 - **Betrieb:** Docker Compose — 3 App-Replikas + Nginx Reverse Proxy
@@ -139,7 +139,7 @@ OPENSKY_CLIENT_SECRET=dein_opensky_client_secret
 | `OPENSKY_CLIENT_ID` | [opensky-network.org](https://opensky-network.org) — API-Client unter dem eigenen Konto anlegen |
 | `OPENSKY_CLIENT_SECRET` | Wie oben — OAuth2 Client Credentials Flow |
 
-> `OPENSKY_CLIENT_ID` und `OPENSKY_CLIENT_SECRET` sind optional. Ohne diese Angaben fällt die App auf die anonyme OpenSky-API zurück (niedrigere Rate Limits, keine Track-Daten).
+> `OPENSKY_CLIENT_ID` und `OPENSKY_CLIENT_SECRET` sind optional. Ohne diese Angaben greift die App auf die anonyme OpenSky-API zurück (niedrigere Rate Limits, keine Track-Daten).
 
 ### Starten
 
@@ -186,7 +186,7 @@ Konzipiert für den Betrieb hinter Cloudflare (echte Client-IP aus `CF-Connectin
 
 Live unter: [drohnenwetter.de](https://drohnenwetter.de)
 
-> **Sicherheitshinweis:** Die App beendet kein TLS. Ausschließlich hinter Nginx + Cloudflare (oder einem anderen TLS-terminierenden Proxy) betreiben. Den Go-App-Port 8080 **nicht** direkt im Internet exponieren.
+> **Sicherheitshinweis:** Kein integriertes TLS. Ausschließlich hinter Nginx + Cloudflare (oder einem anderen TLS-terminierenden Proxy) betreiben. Den Go-App-Port 8080 **nicht** direkt im Internet exponieren.
 
 ---
 

@@ -1,6 +1,6 @@
 # 🛸 Drohnenwetter
 
-Real-time weather and airspace safety assessment for **DJI Matrice 30T (M30T)** drone operators in Germany.
+Real-time weather and airspace safety assessment for drone operators in Germany.
 
 🇩🇪 [Deutsche Version](README.md)
 

@@ -701,20 +701,43 @@
     return HELI_PREFIXES.some(function(p) { return cs.indexOf(p) === 0; });
   }
 
+  // SVG plane icon pointing north (0°) for consistent rotation across platforms
+  var PLANE_PATHS = '<path d="M0,-38C3,-38 6,-30 6,-18L6,10C6,12 5,13 3,13L0,12-3,13C-5,13-6,12-6,10L-6,-18C-6,-30-3,-38 0,-38Z"/>'
+    + '<path d="M-6,-4L-38,18-38,24-6,14Z"/><path d="M6,-4L38,18 38,24 6,14Z"/>'
+    + '<path d="M-3,10L-18,28-18,32-3,22Z"/><path d="M3,10L18,28 18,32 3,22Z"/>';
+  function planeSvg(fill, stroke) {
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-40 -40 80 75" width="1em" height="1em" style="display:block;fill:' + fill + ';stroke:' + stroke + ';stroke-width:2">'
+      + PLANE_PATHS + '</svg>';
+  }
+
   function acIcon(ac) {
-    var heli   = isHelicopter(ac);
-    var emoji  = heli ? '🚁' : ac.category === 9 ? '🛩' : ac.category === 14 ? '🛸' : '✈️';
-    var rotate = heli ? '' : 'transform:rotate(' + (ac.truTrack||0) + 'deg);';
-    var lowAlt = !ac.onGround && ac.baroAlt > 0 && ac.baroAlt < 1000;
-    var filter = lowAlt
-      ? 'filter:drop-shadow(0 0 5px rgba(255,140,0,.95)) drop-shadow(0 1px 2px rgba(0,0,0,.8));'
+    var heli = isHelicopter(ac);
+    var alt  = ac.baroAlt || 0;
+    var airborne = !ac.onGround && alt > 0;
+    var veryLow = airborne && alt < 500;
+    var low     = airborne && alt < 1000;
+    var size   = low ? '1.4rem' : '1.15rem';
+    var filter = low
+      ? 'filter:drop-shadow(0 0 4px rgba(0,0,0,.9)) drop-shadow(0 1px 2px rgba(0,0,0,.8));'
       : 'filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));';
-    var size   = lowAlt ? '1.4rem' : '1.15rem';
-    var label  = lowAlt
-      ? '<div style="font-size:0.6rem;font-weight:bold;color:#ff8c00;text-align:center;text-shadow:0 0 3px #000,0 0 3px #000;line-height:1.2;margin-top:1px;">' + Math.round(ac.baroAlt) + 'm</div>'
+    var icon, rotate;
+    if (heli) {
+      icon = '🚁';
+      rotate = '';
+    } else if (ac.category === 14) {
+      icon = '🛸';
+      rotate = '';
+    } else {
+      var fill = veryLow ? '#e53e3e' : low ? '#ff8c00' : (ac.category === 9 ? '#e0e0e0' : '#fff');
+      var stroke = veryLow || low ? '#000' : '#222';
+      icon = planeSvg(fill, stroke);
+      rotate = 'transform:rotate(' + (ac.truTrack||0) + 'deg);';
+    }
+    var label = low
+      ? '<div style="font-size:0.6rem;font-weight:bold;color:' + (veryLow ? '#e53e3e' : '#ff8c00') + ';text-align:center;text-shadow:0 0 3px #000,0 0 3px #000;line-height:1.2;margin-top:1px;">' + Math.round(alt) + 'm</div>'
       : '';
     return L.divIcon({
-      html: '<div style="font-size:' + size + ';line-height:1;' + rotate + filter + '">' + emoji + '</div>' + label,
+      html: '<div style="font-size:' + size + ';line-height:1;' + rotate + filter + '">' + icon + '</div>' + label,
       iconSize: [22, 26], iconAnchor: [11, 11], className: ''
     });
   }

@@ -13,7 +13,8 @@ Real-time weather and airspace safety assessment for drone operators in Germany.
 
 ## Features
 
-- **Safety assessment** — wind speed (per altitude), gusts, temperature, dew point, and geomagnetic activity evaluated against M30T operating limits
+- **Safety assessment** — wind speed (per altitude), gusts, temperature, dew point (per altitude), and geomagnetic activity evaluated against operating limits
+- **Per-altitude dew point** — computed from DFS temperature and relative humidity via the Magnus-Tetens formula, with two severity tiers (warning / critical) plus an absolute no-go for freezing rain
 - **Airspace overlay** — DiPUL/DFS WMS with 32 layer types (control zones, nature reserves, military areas, …)
 - **Affected zones** — API-sourced GeoJSON polygons for your exact location, rendered on the map with popups and click-to-inspect details
 - **Cloud base** — nearest airport TAF parsed for cloud base altitude
@@ -30,8 +31,8 @@ Real-time weather and airspace safety assessment for drone operators in Germany.
 
 | Source | Data |
 |--------|------|
-| [DFS UTM](https://utm.dfs.de) | Wind & temperature forecast at 10 / 50 / 100 / 150 m AGL |
-| [OpenWeatherMap](https://openweathermap.org) | Current dew point |
+| [DFS UTM](https://utm.dfs.de) | Wind, temperature & relative humidity at 2 / 10 / 50 / 100 / 150 m AGL (dew point derived locally) |
+| [OpenWeatherMap](https://openweathermap.org) | Supplementary surface data (fallback dew point) |
 | [GFZ Potsdam](https://www.gfz-potsdam.de) | Kp-Index (geomagnetic activity) |
 | [DiPUL / DFS](https://uas-betrieb.de) | Airspace zones, WMS overlay & zone details |
 | [DFS TAF](https://www.dfs.de) | Cloud base from nearest airport TAF |
@@ -42,22 +43,28 @@ Real-time weather and airspace safety assessment for drone operators in Germany.
 
 ---
 
-## Safety Limits (DJI M30T)
+## Safety Limits
 
 | Parameter | Limit |
 |-----------|-------|
 | Wind speed | ≤ 12 m/s at any altitude |
 | Gusts | ≤ 12 m/s |
 | Temperature | −20 °C … +50 °C |
-| Dew point proximity | > 2 °C margin (fog risk below 7 °C) |
+| Dew point proximity (warn) | T < 3 °C **and** (T − Td) < 2 °C → fog / clear-ice risk |
+| Dew point proximity (critical) | −10 °C ≤ T ≤ 0 °C **and** (T − Td) < 1 °C → icing risk (supercooled droplets) |
+| Freezing rain | precipitation > 0 mm with surface T ≤ 0 °C → **absolute no-go** |
+| Rain (non-freezing) | > 0 mm → warning (weather-resistant IP-rated drone recommended, not a hard block) |
+| Snowfall | > 0 cm → warning (weather-resistant IP-rated drone recommended, not a hard block) |
 | Kp-Index | ≤ 4 (GPS / radio reliability) |
+
+> The app is primarily aimed at German BOS users (police, fire, rescue, civil protection) operating IP-rated drones. Light rain or snow therefore surface as warnings but do **not** flip the flight status to "blocked".
 
 ---
 
 ## Stack
 
 - **Language:** Go 1.23 — `net/http`, `html/template`, no web framework
-- **Version:** `0.8` (see [VERSION](go/VERSION))
+- **Version:** `0.9` (see [VERSION](go/VERSION))
 - **Dependencies:** [`golang.org/x/time/rate`](https://pkg.go.dev/golang.org/x/time/rate) (rate limiting)
 - **Map:** Leaflet.js + OpenStreetMap + DiPUL WMS
 - **Deploy:** Docker Compose — 3 app replicas + Nginx reverse proxy

@@ -13,7 +13,8 @@ Echtzeit-Wetter- und Luftraumbewertung für Drohnen-Piloten in Deutschland.
 
 ## Funktionen
 
-- **Sicherheitsbewertung** — Windgeschwindigkeit (je Höhe), Böen, Temperatur, Taupunkt und geomagnetische Aktivität werden gegen die M30T-Betriebsgrenzen geprüft
+- **Sicherheitsbewertung** — Windgeschwindigkeit (je Höhe), Böen, Temperatur, Taupunkt (pro Höhe) und geomagnetische Aktivität werden gegen die Betriebsgrenzen geprüft
+- **Taupunkt je Höhe** — pro Altitude aus DFS-Temperatur und -Luftfeuchte via Magnus-Tetens berechnet, zwei Gefahrenstufen (Warnung / kritisch) plus absolutes Flugverbot bei gefrierendem Regen
 - **Luftraumüberlagerung** — DiPUL/DFS WMS mit 32 Zonentypen (Kontrollzonen, Naturschutzgebiete, Militärgebiete, …)
 - **Betroffene Zonen** — API-basierte GeoJSON-Polygone für den genauen Standort, auf der Karte dargestellt mit Popups und Klick-Details
 - **Wolkenuntergrenze** — nächstgelegenes Flughafen-TAF wird nach Wolkenuntergrenze ausgewertet
@@ -30,8 +31,8 @@ Echtzeit-Wetter- und Luftraumbewertung für Drohnen-Piloten in Deutschland.
 
 | Quelle | Daten |
 |--------|-------|
-| [DFS UTM](https://utm.dfs.de) | Wind- & Temperaturvorhersage auf 10 / 50 / 100 / 150 m AGL |
-| [OpenWeatherMap](https://openweathermap.org) | Aktueller Taupunkt |
+| [DFS UTM](https://utm.dfs.de) | Wind, Temperatur & Luftfeuchte auf 2 / 10 / 50 / 100 / 150 m AGL (Taupunkt wird daraus abgeleitet) |
+| [OpenWeatherMap](https://openweathermap.org) | Ergänzende Oberflächenwerte (Fallback für Taupunkt) |
 | [GFZ Potsdam](https://www.gfz-potsdam.de) | Kp-Index (geomagnetische Aktivität) |
 | [DiPUL / DFS](https://uas-betrieb.de) | Luftraumzonen, WMS-Überlagerung & Zonendetails |
 | [DFS TAF](https://www.dfs.de) | Wolkenuntergrenze vom nächstgelegenen Flughafen-TAF |
@@ -42,15 +43,21 @@ Echtzeit-Wetter- und Luftraumbewertung für Drohnen-Piloten in Deutschland.
 
 ---
 
-## Sicherheitsgrenzen (DJI M30T)
+## Sicherheitsgrenzen
 
 | Parameter | Grenzwert |
 |-----------|-----------|
 | Windgeschwindigkeit | ≤ 12 m/s je Höhenstufe |
 | Böen | ≤ 12 m/s |
 | Temperatur | −20 °C … +50 °C |
-| Taupunkt-Abstand | > 2 °C (Nebelrisiko unter 7 °C) |
+| Taupunkt-Abstand (Warnung) | T < 3 °C **und** (T − Td) < 2 °C → Nebel-/Klareisgefahr |
+| Taupunkt-Abstand (kritisch) | −10 °C ≤ T ≤ 0 °C **und** (T − Td) < 1 °C → Vereisungsgefahr |
+| Gefrierender Regen | Niederschlag > 0 mm bei Oberflächen-T ≤ 0 °C → **absolutes Flugverbot** |
+| Regen (nicht gefrierend) | > 0 mm → Warnung (wetterfeste IP-Drohne empfohlen, kein Flugverbot) |
+| Schneefall | > 0 cm → Warnung (wetterfeste IP-Drohne empfohlen, kein Flugverbot) |
 | Kp-Index | ≤ 4 (GPS- / Funk-Zuverlässigkeit) |
+
+> Die App ist primär auf BOS-Nutzer (Polizei, Feuerwehr, Rettung, Katastrophenschutz) mit IP-geschützten Drohnen ausgelegt. Leichter Regen oder Schnee werden daher als Warnung angezeigt, jedoch ohne den Flugstatus auf „gesperrt" zu setzen.
 
 ---
 

@@ -34,12 +34,19 @@ type UTMPrecip struct {
 	Value float64 `json:"value"`
 }
 
+type UTMAirHumidity struct {
+	Height UTMHeight `json:"height"`
+	Unit   string    `json:"unit"`
+	Value  float64   `json:"value"`
+}
+
 type UTMForecast struct {
-	Temperature      []UTMTemperature `json:"temperature"`
-	Wind             []UTMWind        `json:"wind"`
-	RainPrecipitation UTMPrecip       `json:"rainPrecipitation"`
-	SnowPrecipitation UTMPrecip       `json:"snowPrecipitation"`
-	TotalCloudCover  UTMPrecip        `json:"totalCloudCover"`
+	Temperature       []UTMTemperature `json:"temperature"`
+	Wind              []UTMWind        `json:"wind"`
+	AirHumidity       []UTMAirHumidity `json:"airHumidity"`
+	RainPrecipitation UTMPrecip        `json:"rainPrecipitation"`
+	SnowPrecipitation UTMPrecip        `json:"snowPrecipitation"`
+	TotalCloudCover   UTMPrecip        `json:"totalCloudCover"`
 }
 
 type UTMPosition struct {

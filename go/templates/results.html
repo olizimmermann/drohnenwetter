@@ -167,7 +167,7 @@
     background: rgba(255,71,87,.06); border: 1px solid rgba(255,71,87,.2);
     border-radius: 8px; font-size: 13px; color: var(--warn); margin-bottom: .4rem;
   }
-  .warning-item .dismiss-btn, .data-warning-item .dismiss-btn {
+  .warning-item .dismiss-btn, .data-warning-item .dismiss-btn, .advisory-item .dismiss-btn {
     margin-left: auto; flex-shrink: 0;
     background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.15);
     border-radius: 6px; cursor: pointer;
@@ -176,12 +176,22 @@
     display: inline-flex; align-items: center; justify-content: center;
     color: inherit; opacity: .7; white-space: nowrap;
   }
-  .warning-item .dismiss-btn:hover, .data-warning-item .dismiss-btn:hover { opacity: 1; background: rgba(255,255,255,.2); }
-  .warning-item .dismiss-btn:focus, .data-warning-item .dismiss-btn:focus { outline: none; }
+  .warning-item .dismiss-btn:hover, .data-warning-item .dismiss-btn:hover, .advisory-item .dismiss-btn:hover { opacity: 1; background: rgba(255,255,255,.2); }
+  .warning-item .dismiss-btn:focus, .data-warning-item .dismiss-btn:focus, .advisory-item .dismiss-btn:focus { outline: none; }
   .data-warning-item {
     display: flex; align-items: center; gap: .5rem;
     padding: .55rem .9rem;
     background: rgba(255,165,0,.06); border: 1px solid rgba(255,165,0,.25);
+    border-radius: 8px; font-size: 13px; color: var(--amber); margin-bottom: .4rem;
+  }
+  /* Safety advisory — amber, not a hard block. Used for conditions that
+     warrant caution but don't flip Flyable (e.g. non-freezing precipitation
+     on IP-rated airframes). Distinct from .data-warning-item which signals
+     data-source unavailability. */
+  .advisory-item {
+    display: flex; align-items: center; gap: .5rem;
+    padding: .55rem .9rem;
+    background: rgba(255,165,0,.08); border: 1px solid rgba(255,165,0,.35);
     border-radius: 8px; font-size: 13px; color: var(--amber); margin-bottom: .4rem;
   }
 
@@ -264,7 +274,7 @@
   <div id="status-banner" class="status-banner {{if $a.Flyable}}ok{{else}}warn{{end}}">
     <span id="status-banner-icon" class="status-icon">{{if $a.Flyable}}✅{{else}}🚫{{end}}</span>
     <div>
-      <div id="status-banner-de" data-de>{{if $a.Flyable}}Betrieb unbedenklich — alle Wetter Grenzwerte eingehalten. Manuelle Überprüfung der Flugzonen empfohlen.{{else}}Betrieb nicht empfohlen — Warnungen vorhanden{{end}}</div>
+      <div id="status-banner-de" data-de>{{if $a.Flyable}}Betrieb unbedenklich — alle Wettergrenzwerte eingehalten. Manuelle Überprüfung der Flugzonen empfohlen.{{else}}Betrieb nicht empfohlen — Warnungen vorhanden{{end}}</div>
       <div id="status-banner-en" data-en>{{if $a.Flyable}}Operation clear — all weather limits within range. Manual check of flight zones recommended.{{else}}Operation not recommended — warnings present{{end}}</div>
     </div>
   </div>
@@ -293,8 +303,8 @@
   <div class="warnings-section">
     {{if .OWFailed}}
     <div class="data-warning-item">⚠️
-      <span data-de>Taupunkt-Daten nicht verfügbar (OpenWeatherMap) – Nebelgefahr kann nicht berechnet werden.</span>
-      <span data-en>Dew point data unavailable (OpenWeatherMap) – fog risk cannot be assessed.</span>
+      <span data-de>OpenWeatherMap-Daten nicht verfügbar – ergänzende Wetterinfos eingeschränkt. Taupunkt-Berechnung aus DFS-Daten ist davon nicht betroffen.</span>
+      <span data-en>OpenWeatherMap data unavailable – supplementary weather info limited. Dew point calculation from DFS data is unaffected.</span>
       <button class="dismiss-btn" onclick="this.closest('.data-warning-item').remove()" title="Ausblenden / Dismiss">OK</button>
     </div>
     {{end}}
@@ -323,10 +333,12 @@
   {{end}}
 
   {{/* ── Safety warnings ── */}}
-  {{if or $a.WindWarnings $a.TempWarnings $a.DewPointWarning $a.KpWarning}}
+  {{if or $a.WindWarnings $a.TempWarnings $a.DewPointWarning $a.KpWarning $a.FreezingHazard $a.PrecipWarning}}
   <div class="warnings-section">
     {{range $a.WindWarnings}}<div class="warning-item">💨 {{.}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
     {{range $a.TempWarnings}}<div class="warning-item">🌡 {{.}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
+    {{if $a.FreezingHazard}}<div class="warning-item">❄️ <span data-de>{{$a.FreezingHazardDE}}</span><span data-en>{{$a.FreezingHazardEN}}</span><button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
+    {{if $a.PrecipWarning}}<div class="advisory-item">🌧 <span data-de>{{$a.PrecipWarningDE}}</span><span data-en>{{$a.PrecipWarningEN}}</span><button class="dismiss-btn" onclick="this.closest('.advisory-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
     {{if $a.DewPointWarning}}<div class="warning-item">🌫 <span data-de>{{$a.DewPointWarning}}</span><span data-en>{{$a.DewPointWarningEN}}</span><button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
     {{if $a.KpWarning}}<div class="warning-item">🧲 {{$a.KpWarning}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
   </div>
@@ -500,9 +512,26 @@
         <span class="detail-val {{if not .OK}}warn{{else if .Warn}}amber{{else}}ok{{end}}">{{printf "%.1f" .Value}} °C</span>
       </div>
       {{end}}
-      <div class="detail-row" style="border-top:1px solid var(--border)">
-        <span class="detail-key" data-de>Taupunkt</span><span class="detail-key" data-en>Dew Point</span>
-        <span class="detail-val {{if $a.DewPointOK}}ok{{else}}warn{{end}}">{{printf "%.1f" $a.DewPoint}} °C</span>
+      <div class="detail-title-row" style="border-top:1px solid var(--border);padding-top:.5rem;margin-top:.5rem">
+        <div>
+          <span data-de>Taupunkt</span>
+          <span data-en>Dew Point</span>
+        </div>
+        {{if $a.DewPointByAltitude}}
+        <button class="unit-toggle" onclick="toggleDewAltitudes()" id="dew-alt-btn" title="Höhen anzeigen / Show altitudes">▾</button>
+        {{end}}
+      </div>
+      <div class="detail-row">
+        <span class="detail-key" data-de>Am Boden</span><span class="detail-key" data-en>Surface</span>
+        <span class="detail-val {{if $a.DewPointCritical}}warn{{else if not $a.DewPointOK}}amber{{else}}ok{{end}}">{{printf "%.1f" $a.DewPoint}} °C</span>
+      </div>
+      <div id="dew-altitudes" style="display:none">
+        {{range $a.DewPointByAltitude}}
+        <div class="detail-row">
+          <span class="detail-key">{{.Key}} AGL</span>
+          <span class="detail-val {{if .Crit}}warn{{else if .Warn}}amber{{else}}ok{{end}}">{{printf "%.1f" .Value}} °C</span>
+        </div>
+        {{end}}
       </div>
     </div>
 
@@ -511,11 +540,11 @@
       <div class="detail-title" data-en>Additional Data</div>
       <div class="detail-row">
         <span class="detail-key" data-de>Regen</span><span class="detail-key" data-en>Rain</span>
-        <span class="detail-val">{{printf "%.2f" $a.RainMM}} mm</span>
+        <span class="detail-val {{if $a.FreezingHazard}}warn{{else if and $a.PrecipWarning (gt $a.RainMM 0.0)}}amber{{end}}">{{printf "%.2f" $a.RainMM}} mm</span>
       </div>
       <div class="detail-row">
         <span class="detail-key" data-de>Schnee</span><span class="detail-key" data-en>Snow</span>
-        <span class="detail-val">{{printf "%.2f" $a.SnowCM}} cm</span>
+        <span class="detail-val {{if and $a.PrecipWarning (gt $a.SnowCM 0.0)}}amber{{end}}">{{printf "%.2f" $a.SnowCM}} cm</span>
       </div>
       <div class="detail-row">
         <span class="detail-key" data-de>Bewölkung</span><span class="detail-key" data-en>Cloud Cover</span>
@@ -640,7 +669,7 @@
       var banner = document.getElementById('status-banner');
       banner.className = banner.className.replace('warn', 'ok');
       document.getElementById('status-banner-icon').textContent = '✅';
-      document.getElementById('status-banner-de').textContent = 'Betrieb freigegeben — alle Wetter Grenzwerte eingehalten. Manuelle Überprüfung der Flugzonen weiterhin empfohlen.';
+      document.getElementById('status-banner-de').textContent = 'Betrieb freigegeben — alle Wettergrenzwerte eingehalten. Manuelle Überprüfung der Flugzonen weiterhin empfohlen.';
       document.getElementById('status-banner-en').textContent = 'Operation clear — all weather limits within range. Manual check of flight zones recommended.';
       // Header badge
       var badge = document.getElementById('header-badge');
@@ -1081,6 +1110,20 @@
     });
   }
   if (windKmh) applyWindUnit();
+
+  var dewAltShown = localStorage.getItem('dewAltitudes') === 'show';
+  function toggleDewAltitudes() {
+    dewAltShown = !dewAltShown;
+    localStorage.setItem('dewAltitudes', dewAltShown ? 'show' : 'hide');
+    applyDewAltitudes();
+  }
+  function applyDewAltitudes() {
+    var el = document.getElementById('dew-altitudes');
+    if (el) el.style.display = dewAltShown ? '' : 'none';
+    var btn = document.getElementById('dew-alt-btn');
+    if (btn) { btn.textContent = dewAltShown ? '▴' : '▾'; btn.blur(); }
+  }
+  if (dewAltShown) applyDewAltitudes();
 </script>
 
 {{template "uiscript" .}}

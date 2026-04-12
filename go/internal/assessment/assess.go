@@ -68,7 +68,7 @@ func Assess(utm *api.UTMResponse, ow *api.OWResponse, kp float64) *Assessment {
 	for _, t := range fc.Temperature {
 		key := fmt.Sprintf("%gm", t.Height.Value)
 		ok := t.Value <= 50 && t.Value >= -20
-		dewWarn := ow != nil && math.Abs(t.Value-ow.Current.DewPoint) < 2 && t.Value < 7
+		dewWarn := ow != nil && math.Abs(t.Value-ow.Current.DewPoint) < 2 && t.Value < 3
 		a.Temperature = append(a.Temperature, AltEntry{
 			Key:    key,
 			Height: t.Height.Value,

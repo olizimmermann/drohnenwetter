@@ -109,7 +109,9 @@ func Assess(utm *api.UTMResponse, ow *api.OWResponse, kp float64) *Assessment {
 			continue
 		}
 		td := dewPoint(t, h.Value)
-		delta := t - td
+		// Round delta to 2 decimals to match display precision and avoid
+		// floating-point boundary flicker on tier comparisons.
+		delta := round2(t - td)
 		warn := t < 3 && delta < 2
 		crit := t >= -10 && t <= 0 && delta < 1
 		key := fmt.Sprintf("%gm", h.Height.Value)

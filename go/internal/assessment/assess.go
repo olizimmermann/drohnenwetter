@@ -100,7 +100,7 @@ func Assess(utm *api.UTMResponse, ow *api.OWResponse, kp float64) *Assessment {
 	})
 
 	// ── Dew point per altitude (derived from DIPUL humidity + temp) ─────────
-	var worstT, worstTd, worstHeight float64
+	var worstT, worstTd, worstHeight, worstDelta float64
 	worstCrit := false
 	haveWorst := false
 	for _, h := range fc.AirHumidity {
@@ -130,9 +130,9 @@ func Assess(utm *api.UTMResponse, ow *api.OWResponse, kp float64) *Assessment {
 			// crit beats warn; within the same tier, the smallest delta wins.
 			promote := !haveWorst ||
 				(crit && !worstCrit) ||
-				(crit == worstCrit && delta < (worstT-worstTd))
+				(crit == worstCrit && delta < worstDelta)
 			if promote {
-				worstT, worstTd, worstHeight, worstCrit = t, td, h.Height.Value, crit
+				worstT, worstTd, worstHeight, worstDelta, worstCrit = t, td, h.Height.Value, delta, crit
 				haveWorst = true
 			}
 			if crit {
@@ -183,13 +183,15 @@ func Assess(utm *api.UTMResponse, ow *api.OWResponse, kp float64) *Assessment {
 
 	// ── Gust (only reported at 10 m AGL per DFS spec) ───────────────────────
 	var gustRaw float64
+	var foundGust bool
 	for _, w := range fc.Wind {
-		if w.Height.Value == 10 && w.WindSpeedGust != 0 {
+		if w.Height.Value == 10 {
 			gustRaw = w.WindSpeedGust
+			foundGust = true
 			break
 		}
 	}
-	if gustRaw != 0 {
+	if foundGust {
 		gust := math.Abs(gustRaw)
 		ok := gust <= 12
 		a.WindGust = SpeedEntry{Value: round2(gust), OK: ok}

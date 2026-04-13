@@ -13,7 +13,7 @@
     padding: .65rem 1rem;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; z-index: 100;
+    position: sticky; top: 0; z-index: 1100;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
@@ -124,6 +124,7 @@
   /* ── Detail tables ── */
   .detail-grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem;
+    align-items: start;
   }
   .detail-card {
     background: var(--surface); border: 1px solid var(--border);
@@ -497,8 +498,14 @@
         <span class="detail-val {{if not .OK}}warn{{else if .Warn}}amber{{else}}ok{{end}}" data-ms="{{printf "%.1f" .Value}}" data-kmh="{{printf "%.1f" (msToKmh .Value)}}">{{printf "%.1f" .Value}} m/s</span>
       </div>
       {{end}}
-      <div class="detail-row" style="border-top:1px solid var(--border)">
-        <span class="detail-key" data-de>Böen</span><span class="detail-key" data-en>Gusts</span>
+      <div class="detail-title-row" style="border-top:1px solid var(--border);padding-top:.5rem;margin-top:.5rem">
+        <div>
+          <span data-de>Böen</span>
+          <span data-en>Gusts</span>
+        </div>
+      </div>
+      <div class="detail-row">
+        <span class="detail-key" data-de>10m AGL</span><span class="detail-key" data-en>10m AGL</span>
         <span class="detail-val {{if $gust.OK}}ok{{else}}warn{{end}}" data-ms="{{printf "%.1f" $gust.Value}}" data-kmh="{{printf "%.1f" (msToKmh $gust.Value)}}">{{printf "%.1f" $gust.Value}} m/s</span>
       </div>
     </div>
@@ -554,21 +561,92 @@
         <span class="detail-key">Kp-Index</span>
         <span class="detail-val {{if $a.KpOK}}ok{{else}}warn{{end}}">{{printf "%.1f" $a.KpIndex}}</span>
       </div>
+      <div class="detail-title-row" style="border-top:1px solid var(--border);padding-top:.5rem;margin-top:.5rem">
+        <div>
+          <span>METAR / TAF</span>
+          {{with .CloudBase}}{{if .ICAO}}<span style="opacity:.6;font-weight:400;text-transform:none;letter-spacing:0" title="{{.AirportName}}"> · {{.ICAO}}</span>{{end}}{{end}}
+        </div>
+        {{with .CloudBase}}{{if or .MetarAvailable .Available}}
+        <button class="unit-toggle" onclick="toggleMetarTaf()" id="metar-taf-btn" title="Details anzeigen / Show details">▾</button>
+        {{end}}{{end}}
+      </div>
+      {{with .CloudBase}}
+      {{/* Summary row — METAR preferred, TAF fallback */}}
       <div class="detail-row">
-        <span class="detail-key" data-de>Wolkenuntergrenze (TAF)</span>
-        <span class="detail-key" data-en>Cloud Base (TAF)</span>
-        {{with .CloudBase}}
+        <span class="detail-key" data-de>Wolkenuntergrenze</span>
+        <span class="detail-key" data-en>Cloud Base</span>
+        {{if .MetarAvailable}}
+          {{if ge .MetarCloudBaseFt 0}}
+            <span class="detail-val {{if lt .MetarCloudBaseFt 1400}}amber{{end}}" title="{{.AirportName}} ({{.ICAO}}) – aktuelle Beobachtung">
+              {{.MetarCloudBaseFt}}ft / {{printf "%.0f" .MetarCloudBaseM}}m <small style="opacity:.6">(METAR)</small>
+            </span>
+          {{else}}
+            <span class="detail-val ok" title="{{.AirportName}} ({{.ICAO}})">
+              <span data-de>klar</span><span data-en>clear</span> <small style="opacity:.6">(METAR)</small>
+            </span>
+          {{end}}
+        {{else if .Available}}
+          <span class="detail-val {{if lt .CloudBaseFt 1400}}amber{{end}}" title="{{.AirportName}} ({{.ICAO}}) – Prognose">
+            {{.CloudBaseFt}}ft / {{printf "%.0f" .CloudBaseM}}m <small style="opacity:.6">(TAF)</small>
+          </span>
+        {{else}}
+          <span class="detail-val" style="color:var(--muted)">N/A</span>
+        {{end}}
+      </div>
+      {{if or .MetarAvailable .Available}}
+      <div id="metar-taf-details" style="display:none">
+        {{if .MetarAvailable}}
+        <div class="detail-row">
+          <span class="detail-key" data-de>Wolkenuntergrenze (TAF)</span>
+          <span class="detail-key" data-en>Cloud Base (TAF)</span>
           {{if .Available}}
-            <span class="detail-val {{if lt .CloudBaseFt 1400}}amber{{end}}" title="{{.AirportName}} ({{.ICAO}})">
+            <span class="detail-val {{if lt .CloudBaseFt 1400}}amber{{end}}" title="{{.AirportName}} ({{.ICAO}}) – Prognose">
               {{.CloudBaseFt}}ft / {{printf "%.0f" .CloudBaseM}}m
             </span>
           {{else}}
             <span class="detail-val" style="color:var(--muted)">N/A</span>
           {{end}}
-        {{else}}
-          <span class="detail-val" style="color:var(--muted)">N/A</span>
+        </div>
         {{end}}
+        <div class="detail-row">
+          <span class="detail-key" data-de>Sichtweite (METAR)</span>
+          <span class="detail-key" data-en>Visibility (METAR)</span>
+          {{if ge .MetarVisibilityM 0}}
+            {{if ge .MetarVisibilityM 9999}}
+              <span class="detail-val ok" title="{{.AirportName}} ({{.ICAO}})">≥10 km</span>
+            {{else}}
+              <span class="detail-val {{if lt .MetarVisibilityM 5000}}amber{{end}}" title="{{.AirportName}} ({{.ICAO}})">
+                {{printf "%.1f" .MetarVisibilityKm}} km
+              </span>
+            {{end}}
+          {{else}}
+            <span class="detail-val" style="color:var(--muted)">N/A</span>
+          {{end}}
+        </div>
+        <div class="detail-row">
+          <span class="detail-key" data-de>Sichtweite (TAF min)</span>
+          <span class="detail-key" data-en>Visibility (TAF min)</span>
+          {{if ge .TafMinVisibilityM 0}}
+            {{if ge .TafMinVisibilityM 9999}}
+              <span class="detail-val ok" title="{{.AirportName}} ({{.ICAO}}) – Prognose">≥10 km</span>
+            {{else}}
+              <span class="detail-val {{if lt .TafMinVisibilityM 5000}}amber{{end}}" title="{{.AirportName}} ({{.ICAO}}) – schlechteste Sicht in der Prognose">
+                {{printf "%.1f" .TafMinVisibilityKm}} km
+              </span>
+            {{end}}
+          {{else}}
+            <span class="detail-val" style="color:var(--muted)">N/A</span>
+          {{end}}
+        </div>
       </div>
+      {{end}}
+      {{else}}
+      <div class="detail-row">
+        <span class="detail-key" data-de>Wolkenuntergrenze</span>
+        <span class="detail-key" data-en>Cloud Base</span>
+        <span class="detail-val" style="color:var(--muted)">N/A</span>
+      </div>
+      {{end}}
     </div>
 
   </div>
@@ -1118,12 +1196,28 @@
     applyDewAltitudes();
   }
   function applyDewAltitudes() {
-    var el = document.getElementById('dew-altitudes');
-    if (el) el.style.display = dewAltShown ? '' : 'none';
     var btn = document.getElementById('dew-alt-btn');
-    if (btn) { btn.textContent = dewAltShown ? '▴' : '▾'; btn.blur(); }
+    var el = document.getElementById('dew-altitudes');
+    if (!btn || !el) return;
+    el.style.display = dewAltShown ? '' : 'none';
+    btn.textContent = dewAltShown ? '▴' : '▾'; btn.blur();
   }
   if (dewAltShown) applyDewAltitudes();
+
+  var metarTafShown = localStorage.getItem('metarTafDetails') === 'show';
+  function toggleMetarTaf() {
+    metarTafShown = !metarTafShown;
+    localStorage.setItem('metarTafDetails', metarTafShown ? 'show' : 'hide');
+    applyMetarTaf();
+  }
+  function applyMetarTaf() {
+    var btn = document.getElementById('metar-taf-btn');
+    var el = document.getElementById('metar-taf-details');
+    if (!btn || !el) return;
+    el.style.display = metarTafShown ? '' : 'none';
+    btn.textContent = metarTafShown ? '▴' : '▾'; btn.blur();
+  }
+  if (metarTafShown) applyMetarTaf();
 </script>
 
 {{template "uiscript" .}}

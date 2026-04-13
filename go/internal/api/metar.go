@@ -10,13 +10,27 @@ import (
 	"time"
 )
 
-// CloudBaseResult holds the nearest airport METAR cloud base for a city.
+// CloudBaseResult holds nearest-airport METAR observation + TAF forecast data.
+// All int fields use -1 as "not parseable / absent".
 type CloudBaseResult struct {
 	ICAO        string
 	AirportName string
-	CloudBaseFt int     // feet; -1 = not parseable
+
+	// TAF forecast (lowest BKN/OVC across forecast period)
+	CloudBaseFt int     // feet
 	CloudBaseM  float64 // metres
-	Available   bool
+	Available   bool    // TAF cloud-base parsed successfully
+
+	// METAR current observation
+	MetarAvailable   bool
+	MetarCloudBaseFt int
+	MetarCloudBaseM  float64
+	MetarVisibilityM  int     // metres; 9999 means ≥10 km
+	MetarVisibilityKm float64 // derived for display
+
+	// TAF worst-case visibility across forecast period
+	TafMinVisibilityM  int
+	TafMinVisibilityKm float64
 }
 
 // ── Airport list cache ────────────────────────────────────────────────────────
@@ -30,10 +44,20 @@ type airportListCache struct {
 var airportCache airportListCache
 
 var (
-	optionRe = regexp.MustCompile(`<option[^>]+value="([^"]*)"[^>]*>\s*([^<]+?)\s*</option>`)
-	tagRe    = regexp.MustCompile(`<[^>]+>`)
-	tafSecRe = regexp.MustCompile(`(?s)<b>TAF:</b>(.*?)(?:<b>|</div>|</p>|$)`)
-	cloudRe  = regexp.MustCompile(`BKN(\d{3})`)
+	optionRe  = regexp.MustCompile(`<option[^>]+value="([^"]*)"[^>]*>\s*([^<]+?)\s*</option>`)
+	tagRe     = regexp.MustCompile(`<[^>]+>`)
+	// Each METAR/TAF block lives on a single line in the source HTML, so
+	// terminating at a newline keeps footer prose ("mehr als 4000 Flughäfen")
+	// out of the captured section.
+	metarSecRe = regexp.MustCompile(`(?s)<b>METAR:</b>(.*?)(?:\n|<b>|</div>|</p>|$)`)
+	tafSecRe   = regexp.MustCompile(`(?s)<b>TAF:</b>(.*?)(?:\n|<b>|</div>|</p>|$)`)
+	cloudRe    = regexp.MustCompile(`(?:BKN|OVC)(\d{3})`)
+	// Date/validity groups like 1318/1418 — stripped before visibility parsing.
+	dateGroupRe = regexp.MustCompile(`\d{4}/\d{4}`)
+	// Standalone 4-digit tokens: visibility in metres (0000–9999). \b boundaries
+	// allow back-to-back tokens (e.g. "9999 4000 5000") without consuming the
+	// separating whitespace, which a (^|\s)(\s|$) regex would.
+	vis4Re = regexp.MustCompile(`\b\d{4}\b`)
 )
 
 const allmetBase = "https://de.allmetsat.com/metar-taf/deutschland.php"
@@ -136,36 +160,92 @@ func parseCloudBase(text string) int {
 	return min * 100 // hundreds of feet → feet
 }
 
-// FetchCloudBase looks up the nearest airport for city and returns the TAF cloud base.
-// Always returns a non-nil result; check Available field.
+// parseVisibility finds standalone 4-digit metre tokens (e.g. "9999", "4000")
+// in a METAR/TAF string and returns the MINIMUM (worst-case). Date/validity
+// groups like "1318/1418" are stripped first so they don't poison the match.
+// Returns -1 if none found.
+func parseVisibility(text string) int {
+	cleaned := dateGroupRe.ReplaceAllString(text, " ")
+	matches := vis4Re.FindAllString(cleaned, -1)
+	if len(matches) == 0 {
+		return -1
+	}
+	min := -1
+	for _, tok := range matches {
+		val := 0
+		for _, c := range tok {
+			val = val*10 + int(c-'0')
+		}
+		// Plausibility: visibility in METAR/TAF fits 0000–9999.
+		if val < 0 || val > 9999 {
+			continue
+		}
+		if min == -1 || val < min {
+			min = val
+		}
+	}
+	return min
+}
+
+// extractSection pulls the text from a <b>LABEL:</b> … block and strips HTML tags.
+func extractSection(page string, re *regexp.Regexp) string {
+	m := re.FindStringSubmatch(page)
+	if m == nil {
+		return ""
+	}
+	return strings.TrimSpace(tagRe.ReplaceAllString(m[1], " "))
+}
+
+// FetchCloudBase looks up the nearest airport for city and returns the
+// METAR observation + TAF forecast cloud base and visibility. Always returns
+// a non-nil result; check Available / MetarAvailable fields.
 func FetchCloudBase(city string) *CloudBaseResult {
+	res := &CloudBaseResult{
+		CloudBaseFt:       -1,
+		MetarCloudBaseFt:  -1,
+		MetarVisibilityM:  -1,
+		TafMinVisibilityM: -1,
+	}
 	icao, airportName := findAirport(city)
 	if icao == "" {
-		return &CloudBaseResult{Available: false}
+		return res
 	}
+	res.ICAO = icao
+	res.AirportName = airportName
 
 	page, err := fetchTAFPage(icao)
 	if err != nil {
-		return &CloudBaseResult{ICAO: icao, AirportName: airportName, Available: false}
+		return res
 	}
 
-	// Extract the TAF text block (strip inner HTML tags, e.g. <br/>)
-	tafMatch := tafSecRe.FindStringSubmatch(page)
-	if tafMatch == nil {
-		return &CloudBaseResult{ICAO: icao, AirportName: airportName, Available: false}
+	// ── METAR section (current observation) ──────────────────────────────
+	if metarText := extractSection(page, metarSecRe); metarText != "" {
+		res.MetarVisibilityM = parseVisibility(metarText)
+		if res.MetarVisibilityM >= 0 {
+			res.MetarVisibilityKm = float64(res.MetarVisibilityM) / 1000
+		}
+		if ft := parseCloudBase(metarText); ft >= 0 {
+			res.MetarCloudBaseFt = ft
+			res.MetarCloudBaseM = math.Round(float64(ft) * 0.3048)
+			res.MetarAvailable = true
+		} else if res.MetarVisibilityM >= 0 {
+			// No cloud layer reported (clear) but we still have a valid METAR.
+			res.MetarAvailable = true
+		}
 	}
-	tafText := strings.TrimSpace(tagRe.ReplaceAllString(tafMatch[1], " "))
 
-	cloudFt := parseCloudBase(tafText)
-	if cloudFt < 0 {
-		return &CloudBaseResult{ICAO: icao, AirportName: airportName, Available: false}
+	// ── TAF section (forecast) ────────────────────────────────────────────
+	if tafText := extractSection(page, tafSecRe); tafText != "" {
+		res.TafMinVisibilityM = parseVisibility(tafText)
+		if res.TafMinVisibilityM >= 0 {
+			res.TafMinVisibilityKm = float64(res.TafMinVisibilityM) / 1000
+		}
+		if ft := parseCloudBase(tafText); ft >= 0 {
+			res.CloudBaseFt = ft
+			res.CloudBaseM = math.Round(float64(ft) * 0.3048)
+			res.Available = true
+		}
 	}
 
-	return &CloudBaseResult{
-		ICAO:        icao,
-		AirportName: airportName,
-		CloudBaseFt: cloudFt,
-		CloudBaseM:  math.Round(float64(cloudFt) * 0.3048),
-		Available:   true,
-	}
+	return res
 }

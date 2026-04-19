@@ -29,9 +29,10 @@ type Assessment struct {
 	Temperature  []AltEntry // sorted 2m → 150m
 	TempWarnings []string
 
-	WindSpeed    []AltEntry // sorted 10m → 150m
-	WindGust     SpeedEntry
-	WindWarnings []string
+	WindSpeed      []AltEntry // sorted 10m → 150m
+	WindGust       SpeedEntry
+	WindWarnings   []string
+	WindWarningsEN []string
 
 	DewPoint           float64    // surface / lowest-altitude value
 	DewPointByAltitude []AltEntry // sorted low → high
@@ -55,9 +56,10 @@ type Assessment struct {
 	SnowCM     float64
 	CloudCover float64
 
-	KpIndex   float64
-	KpOK      bool
-	KpWarning string
+	KpIndex     float64
+	KpOK        bool
+	KpWarning   string
+	KpWarningEN string
 }
 
 func Assess(utm *api.UTMResponse, ow *api.OWResponse, kp float64) *Assessment {
@@ -174,7 +176,9 @@ func Assess(utm *api.UTMResponse, ow *api.OWResponse, kp float64) *Assessment {
 		})
 		if !ok {
 			a.Flyable = false
-			a.WindWarnings = append(a.WindWarnings, fmt.Sprintf("%.1f m/s [%s]", speed, key))
+			msg := fmt.Sprintf("%.1f m/s [%s]", speed, key)
+			a.WindWarnings = append(a.WindWarnings, msg)
+			a.WindWarningsEN = append(a.WindWarningsEN, msg)
 		}
 	}
 	sort.Slice(a.WindSpeed, func(i, j int) bool {
@@ -198,6 +202,7 @@ func Assess(utm *api.UTMResponse, ow *api.OWResponse, kp float64) *Assessment {
 		if !ok {
 			a.Flyable = false
 			a.WindWarnings = append(a.WindWarnings, fmt.Sprintf("Böen %.1f m/s", gust))
+			a.WindWarningsEN = append(a.WindWarningsEN, fmt.Sprintf("Gusts %.1f m/s", gust))
 		}
 	}
 
@@ -252,6 +257,7 @@ func Assess(utm *api.UTMResponse, ow *api.OWResponse, kp float64) *Assessment {
 		a.KpOK = false
 		a.Flyable = false
 		a.KpWarning = fmt.Sprintf("Kp-Index %.1f – GPS/Funk-Zuverlässigkeit beeinträchtigt", kp)
+		a.KpWarningEN = fmt.Sprintf("Kp index %.1f – GPS/radio reliability impaired", kp)
 	}
 
 	return a

@@ -7,7 +7,7 @@ Echtzeit-Wetter- und Luftraumbewertung für Drohnen-Piloten in Deutschland.
 [![Deploy](https://github.com/olizimmermann/drohnenwetter/actions/workflows/deploy.yml/badge.svg)](https://github.com/olizimmermann/drohnenwetter/actions/workflows/deploy.yml)
 [![Daily Health Check](https://github.com/olizimmermann/drohnenwetter/actions/workflows/daily-health.yml/badge.svg)](https://github.com/olizimmermann/drohnenwetter/actions/workflows/daily-health.yml)
 
-![Drohnenwetter](drohnenwetter.png)
+![Drohnenwetter](drohnenwetter_text.jpg)
 
 ---
 

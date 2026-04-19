@@ -336,12 +336,12 @@
   {{/* ── Safety warnings ── */}}
   {{if or $a.WindWarnings $a.TempWarnings $a.DewPointWarning $a.KpWarning $a.FreezingHazard $a.PrecipWarning}}
   <div class="warnings-section">
-    {{range $a.WindWarnings}}<div class="warning-item">💨 {{.}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
+    {{range $i, $w := $a.WindWarnings}}<div class="warning-item">💨 <span data-de>{{$w}}</span><span data-en>{{index $a.WindWarningsEN $i}}</span><button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
     {{range $a.TempWarnings}}<div class="warning-item">🌡 {{.}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
     {{if $a.FreezingHazard}}<div class="warning-item">❄️ <span data-de>{{$a.FreezingHazardDE}}</span><span data-en>{{$a.FreezingHazardEN}}</span><button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
     {{if $a.PrecipWarning}}<div class="advisory-item">🌧 <span data-de>{{$a.PrecipWarningDE}}</span><span data-en>{{$a.PrecipWarningEN}}</span><button class="dismiss-btn" onclick="this.closest('.advisory-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
     {{if $a.DewPointWarning}}<div class="warning-item">🌫 <span data-de>{{$a.DewPointWarning}}</span><span data-en>{{$a.DewPointWarningEN}}</span><button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
-    {{if $a.KpWarning}}<div class="warning-item">🧲 {{$a.KpWarning}}<button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
+    {{if $a.KpWarning}}<div class="warning-item">🧲 <span data-de>{{$a.KpWarning}}</span><span data-en>{{$a.KpWarningEN}}</span><button class="dismiss-btn" onclick="this.closest('.warning-item').remove()" title="Ausblenden / Dismiss">OK</button></div>{{end}}
   </div>
   {{end}}
 

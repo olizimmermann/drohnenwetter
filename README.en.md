@@ -7,7 +7,7 @@ Real-time weather and airspace safety assessment for drone operators in Germany.
 [![Deploy](https://github.com/olizimmermann/drohnenwetter/actions/workflows/deploy.yml/badge.svg)](https://github.com/olizimmermann/drohnenwetter/actions/workflows/deploy.yml)
 [![Daily Health Check](https://github.com/olizimmermann/drohnenwetter/actions/workflows/daily-health.yml/badge.svg)](https://github.com/olizimmermann/drohnenwetter/actions/workflows/daily-health.yml)
 
-![Drohnenwetter](drohnenwetter.png)
+![Drohnenwetter](drohnenwetter_text.jpg)
 
 ---
 

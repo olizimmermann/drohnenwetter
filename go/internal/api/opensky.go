@@ -1,10 +1,14 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -12,21 +16,39 @@ import (
 	"time"
 )
 
-// openskyRadius is the bounding box half-extent in decimal degrees (~11 km).
-const openskyRadius = 0.1
+// ── Tunables ──────────────────────────────────────────────────────────────────
+
+const (
+	openskyRadiusKm = 11.0             // half-extent of the live-traffic box
+	openskyTimeout  = 5 * time.Second  // per-call timeout for OpenSky requests
+	trafficCacheTTL = 10 * time.Second // matches the API's anonymous resolution
+	trafficCacheMax = 256
+)
 
 // ── OAuth2 token cache ────────────────────────────────────────────────────────
 
 type openskyTokenCache struct {
-	mu          sync.Mutex
-	token       string
-	expires     time.Time
-	retryAfter  time.Time // backoff after auth failure
+	mu         sync.Mutex
+	token      string
+	expires    time.Time
+	retryAfter time.Time // backoff after auth failure
 }
 
 var openskyToken openskyTokenCache
 
 const openskyTokenURL = "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token"
+
+func hasOpenskyCreds() bool {
+	return os.Getenv("OPENSKY_CLIENT_ID") != "" && os.Getenv("OPENSKY_CLIENT_SECRET") != ""
+}
+
+// invalidate drops the cached token so the next call re-authenticates.
+func (c *openskyTokenCache) invalidate() {
+	c.mu.Lock()
+	c.token = ""
+	c.expires = time.Time{}
+	c.mu.Unlock()
+}
 
 func getOpenskyToken() (string, error) {
 	openskyToken.mu.Lock()
@@ -96,6 +118,103 @@ func openskyHeaders() (map[string]string, error) {
 	return map[string]string{"Authorization": "Bearer " + token}, nil
 }
 
+// ── HTTP helper ───────────────────────────────────────────────────────────────
+
+// openskyGet performs a GET against the OpenSky API with a per-call timeout.
+// On HTTP 401 it drops the cached token and retries once with a fresh one
+// (only when credentials are configured — an anonymous 401 won't recover).
+func openskyGet(apiURL string) ([]byte, error) {
+	body, err := openskyGetOnce(apiURL)
+	if errors.Is(err, ErrUnauthorized) && hasOpenskyCreds() {
+		openskyToken.invalidate()
+		body, err = openskyGetOnce(apiURL)
+	}
+	return body, err
+}
+
+func openskyGetOnce(apiURL string) ([]byte, error) {
+	headers, err := openskyHeaders()
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), openskyTimeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	return doRequest(req)
+}
+
+// ── Bounding box ──────────────────────────────────────────────────────────────
+
+// openskyBBox returns a ~22 km × 22 km bounding box centered on lat/lon.
+// Longitude is scaled by 1/cos(lat) so the box stays roughly square in km
+// terms across European latitudes.
+func openskyBBox(lat, lon float64) (lamin, lomin, lamax, lomax float64) {
+	const kmPerDeg = 111.0
+	latDelta := openskyRadiusKm / kmPerDeg
+	cosLat := math.Cos(lat * math.Pi / 180)
+	if cosLat < 0.05 { // clamp near the poles to avoid divergence
+		cosLat = 0.05
+	}
+	lonDelta := openskyRadiusKm / (kmPerDeg * cosLat)
+	return lat - latDelta, lon - lonDelta, lat + latDelta, lon + lonDelta
+}
+
+// ── Traffic cache ─────────────────────────────────────────────────────────────
+
+type trafficCacheEntry struct {
+	states  []AircraftState
+	expires time.Time
+}
+
+var trafficCache = struct {
+	sync.Mutex
+	m map[string]trafficCacheEntry
+}{m: make(map[string]trafficCacheEntry)}
+
+func cachedTraffic(key string) ([]AircraftState, bool) {
+	trafficCache.Lock()
+	defer trafficCache.Unlock()
+	e, ok := trafficCache.m[key]
+	if !ok {
+		return nil, false
+	}
+	if time.Now().After(e.expires) {
+		delete(trafficCache.m, key)
+		return nil, false
+	}
+	return e.states, true
+}
+
+func storeTraffic(key string, states []AircraftState) {
+	trafficCache.Lock()
+	defer trafficCache.Unlock()
+	if len(trafficCache.m) >= trafficCacheMax {
+		// Sweep expired entries first; if still at cap, drop arbitrary ones.
+		now := time.Now()
+		for k, v := range trafficCache.m {
+			if now.After(v.expires) {
+				delete(trafficCache.m, k)
+			}
+		}
+		for k := range trafficCache.m {
+			if len(trafficCache.m) < trafficCacheMax {
+				break
+			}
+			delete(trafficCache.m, k)
+		}
+	}
+	trafficCache.m[key] = trafficCacheEntry{
+		states:  states,
+		expires: time.Now().Add(trafficCacheTTL),
+	}
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 // AircraftState holds the fields we care about from an OpenSky state vector.
@@ -139,13 +258,8 @@ type FlightTrack struct {
 
 // FetchTrack fetches the current flight track for the given ICAO24 address.
 func FetchTrack(icao24 string) (*FlightTrack, error) {
-	headers, err := openskyHeaders()
-	if err != nil {
-		return nil, err
-	}
-
 	apiURL := fmt.Sprintf("https://opensky-network.org/api/tracks?icao24=%s&time=0", icao24)
-	body, err := doGet(apiURL, headers)
+	body, err := openskyGet(apiURL)
 	if err != nil {
 		return nil, fmt.Errorf("OpenSky track: %w", err)
 	}
@@ -201,19 +315,20 @@ func FetchTrack(icao24 string) (*FlightTrack, error) {
 }
 
 // FetchNearbyTraffic fetches current aircraft state vectors within ~11 km of lat/lon.
+// Responses are cached for 10s — matching the OpenSky anonymous resolution —
+// to avoid burning credits on duplicate concurrent requests.
 func FetchNearbyTraffic(lat, lon float64) ([]AircraftState, error) {
-	headers, err := openskyHeaders()
-	if err != nil {
-		return nil, err
-	}
-
+	lamin, lomin, lamax, lomax := openskyBBox(lat, lon)
 	apiURL := fmt.Sprintf(
 		"https://opensky-network.org/api/states/all?lamin=%.4f&lomin=%.4f&lamax=%.4f&lomax=%.4f&extended=1",
-		lat-openskyRadius, lon-openskyRadius,
-		lat+openskyRadius, lon+openskyRadius,
+		lamin, lomin, lamax, lomax,
 	)
 
-	body, err := doGet(apiURL, headers)
+	if states, ok := cachedTraffic(apiURL); ok {
+		return states, nil
+	}
+
+	body, err := openskyGet(apiURL)
 	if err != nil {
 		return nil, fmt.Errorf("OpenSky: %w", err)
 	}
@@ -225,7 +340,8 @@ func FetchNearbyTraffic(lat, lon float64) ([]AircraftState, error) {
 
 	aircraft := make([]AircraftState, 0, len(resp.States))
 	for _, s := range resp.States {
-		if len(s) < 17 {
+		// extended=1 returns 18 fields (indices 0–17); skip anything shorter.
+		if len(s) < 18 {
 			continue
 		}
 		a := AircraftState{}
@@ -253,15 +369,15 @@ func FetchNearbyTraffic(lat, lon float64) ([]AircraftState, error) {
 		if v, ok := s[8].(bool); ok {
 			a.OnGround = v
 		}
-		if len(s) > 17 {
-			if v, ok := s[17].(float64); ok {
-				a.Category = int(v)
-			}
+		if v, ok := s[17].(float64); ok {
+			a.Category = int(v)
 		}
 		if a.Lat == 0 && a.Lon == 0 {
 			continue
 		}
 		aircraft = append(aircraft, a)
 	}
+
+	storeTraffic(apiURL, aircraft)
 	return aircraft, nil
 }

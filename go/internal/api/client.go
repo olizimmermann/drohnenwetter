@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,6 +10,10 @@ import (
 	"strings"
 	"time"
 )
+
+// ErrUnauthorized wraps any 4xx/5xx response with status 401, so callers
+// (e.g. OpenSky) can detect a revoked/expired token and refresh.
+var ErrUnauthorized = errors.New("unauthorized")
 
 var httpClient = &http.Client{
 	Timeout: 8 * time.Second,
@@ -58,6 +63,9 @@ func doRequest(req *http.Request) ([]byte, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("HTTP %d from %s: %w", resp.StatusCode, req.URL, ErrUnauthorized)
+	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("HTTP %d from %s", resp.StatusCode, req.URL)
 	}

@@ -17,4 +17,4 @@ Violations may result in comments being removed or the contributor being blocked
 
 ## Contact
 
-For private concerns: public@ozimmermann.com
+For private concerns: info@drohnenwetter.de

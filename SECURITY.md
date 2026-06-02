@@ -8,7 +8,7 @@ Only the latest version on `main` is actively maintained and receives security f
 
 **Please do not report security vulnerabilities via GitHub Issues.**
 
-Send a description of the issue to: **public@ozimmermann.com**
+Send a description of the issue to: **info@drohnenwetter.de**
 
 Include as much detail as possible:
 - Type of vulnerability (XSS, injection, authentication bypass, etc.)

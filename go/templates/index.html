@@ -155,6 +155,52 @@
     justify-content: center;
   }
 
+  .scope-partner-logos {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .9rem;
+  }
+  .partner-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+  }
+  .partner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .partner img {
+    display: block;
+    filter: grayscale(1);
+    opacity: .55;
+    transition: filter .2s, opacity .2s;
+  }
+  .partner:hover img,
+  .partner:focus-visible img {
+    filter: grayscale(0);
+    opacity: 1;
+  }
+  .partner-tier-1 img {
+    height: 40px;
+    max-width: 220px;
+    object-fit: contain;
+  }
+  .partner-tier-2 {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .partner-tier-2 img {
+    height: 26px;
+    max-width: 110px;
+    object-fit: contain;
+  }
+
   .info-row {
     margin-top: 1rem;
     font-size: 11px;
@@ -214,7 +260,7 @@
 
     <div class="divider"></div>
 
-    <div class="scope-badges">
+    <!-- <div class="scope-badges">
       <span class="badge badge-ok">DFS UTM</span>
       <span class="badge badge-ok">OpenWeatherMap</span>
       <span class="badge badge-ok">DiPUL</span>
@@ -222,7 +268,11 @@
       <span class="badge badge-ok">HERE Maps</span>
       <span class="badge badge-ok">OpenSky Network</span>
       <span class="badge badge-ok">allmetsat.com (METAR/TAF)</span>
-    </div>
+    </div> -->
+
+    <!-- <div class="scope-partner-logos">
+      
+    </div> -->
 
     <div class="info-row">
       <span data-de>Nur für Deutschland · Betrieb in VLOS · Keine Haftung</span>

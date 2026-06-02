@@ -204,4 +204,4 @@ Wetterdaten © jeweilige Anbieter. Kartendaten © OpenStreetMap-Beitragende.
 
 ---
 
-**Kontakt:** [public@ozimmermann.com](mailto:public@ozimmermann.com) · [github.com/olizimmermann](https://github.com/olizimmermann)
+**Kontakt:** [info@drohnenwetter.de](mailto:info@drohnenwetter.de) · [github.com/olizimmermann](https://github.com/olizimmermann)

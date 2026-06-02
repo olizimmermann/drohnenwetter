@@ -204,4 +204,4 @@ Weather data © respective providers. Map data © OpenStreetMap contributors.
 
 ---
 
-**Contact:** [public@ozimmermann.com](mailto:public@ozimmermann.com) · [github.com/olizimmermann](https://github.com/olizimmermann)
+**Contact:** [info@drohnenwetter.de](mailto:info@drohnenwetter.de) · [github.com/olizimmermann](https://github.com/olizimmermann)

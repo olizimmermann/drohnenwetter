@@ -64,10 +64,24 @@ func doRequest(req *http.Request) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusUnauthorized {
-		return nil, fmt.Errorf("HTTP %d from %s: %w", resp.StatusCode, req.URL, ErrUnauthorized)
+		return nil, fmt.Errorf("HTTP %d from %s: %w", resp.StatusCode, redactURL(req.URL), ErrUnauthorized)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("HTTP %d from %s", resp.StatusCode, req.URL)
+		return nil, fmt.Errorf("HTTP %d from %s", resp.StatusCode, redactURL(req.URL))
 	}
 	return io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
+}
+
+// redactURL returns the scheme://host/path of u without the query string, so
+// secrets carried as query params (e.g. HERE apiKey, OpenWeather appid) never
+// reach logs. The query is replaced with a "?<redacted>" marker when present.
+func redactURL(u *url.URL) string {
+	if u == nil {
+		return ""
+	}
+	s := u.Scheme + "://" + u.Host + u.EscapedPath()
+	if u.RawQuery != "" {
+		s += "?<redacted>"
+	}
+	return s
 }

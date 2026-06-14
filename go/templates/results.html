@@ -767,13 +767,38 @@
   }).addTo(map);
 
   // ── DiPUL WMS overlay (all 32 layers) ────────────────────────────────────
-  L.tileLayer.wms(WMS_BASE, {
-    layers: WMS_LAYERS.map(function(l) { return l.layer; }).join(','),
-    format: 'image/png',
-    transparent: true,
-    opacity: 0.75,
-    attribution: '© DiPUL / DFS'
-  }).addTo(map);
+  // The three most-restrictive airspace layers are rendered as their own
+  // overlays instead of being folded into the single combined request below.
+  // DiPUL renders all requested layers in one server-side image, so a single
+  // failing layer makes the whole GetMap return a ServiceException and the
+  // entire overlay (every zone) vanishes. Isolating these keeps the critical
+  // airspace layers — and everything else — visible if one layer breaks
+  // upstream, and lets a broken layer recover automatically once DiPUL fixes
+  // it. Ordered least→most restrictive so the last added renders on top.
+  var AIRSPACE_LAYERS = [
+    'dipul:temporaere_betriebseinschraenkungen',
+    'dipul:kontrollzonen',
+    'dipul:flugbeschraenkungsgebiete'
+  ];
+
+  function addWmsOverlay(layers) {
+    return L.tileLayer.wms(WMS_BASE, {
+      layers: layers,
+      format: 'image/png',
+      transparent: true,
+      opacity: 0.75,
+      attribution: '© DiPUL / DFS'
+    }).addTo(map);
+  }
+
+  // Base overlay: all non-airspace layers in one request (bottom).
+  addWmsOverlay(WMS_LAYERS
+    .map(function(l) { return l.layer; })
+    .filter(function(name) { return AIRSPACE_LAYERS.indexOf(name) === -1; })
+    .join(','));
+
+  // Airspace layers on top, each isolated so one failure can't blank the rest.
+  AIRSPACE_LAYERS.forEach(function(name) { addWmsOverlay(name); });
 
   // ── Location marker + 100m radius ────────────────────────────────────────
   var pinIcon = L.divIcon({

@@ -34,19 +34,31 @@ func getToken() (string, error) {
 		"Referer":         "https://maptool-dipul.dfs.de/",
 	}
 
-	body, err := doGet("https://uas-betrieb.dfs.de/api/token/v1/anonymous/bmdv/token", headers)
-	if err != nil {
-		return "", fmt.Errorf("DiPUL token: %w", err)
-	}
-
+	// DFS renamed the anonymous-token tenant "bmdv" → "bmv" (ministry rename,
+	// July 2026); the old tenant returns HTTP 500. Try "bmv" first and fall
+	// back to "bmdv", mirroring the official maptool.
 	var resp struct {
 		Token string `json:"token"`
 	}
-	if err := json.Unmarshal(body, &resp); err != nil {
-		return "", fmt.Errorf("DiPUL token parse: %w", err)
+	var lastErr error
+	for _, tenant := range []string{"bmv", "bmdv"} {
+		body, err := doGet("https://uas-betrieb.dfs.de/api/token/v1/anonymous/"+tenant+"/token", headers)
+		if err != nil {
+			lastErr = fmt.Errorf("DiPUL token (%s): %w", tenant, err)
+			continue
+		}
+		if err := json.Unmarshal(body, &resp); err != nil {
+			lastErr = fmt.Errorf("DiPUL token parse (%s): %w", tenant, err)
+			continue
+		}
+		if resp.Token == "" {
+			lastErr = fmt.Errorf("DiPUL token (%s): empty token in response", tenant)
+			continue
+		}
+		break
 	}
 	if resp.Token == "" {
-		return "", fmt.Errorf("DiPUL token: empty token in response")
+		return "", lastErr
 	}
 
 	dipulToken.token = resp.Token

@@ -155,7 +155,12 @@
       font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
       font-size: 15px;
       line-height: 1.5;
+      /* Column layout: content grows, the footer sits at the bottom of the
+         first screen whatever its height (dvh excludes mobile browser bars). */
       min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
       transition: background .2s, color .2s;
     }
 
@@ -231,8 +236,12 @@
     html[data-lang="de"] [data-en] { display: none; }
     html[data-lang="en"] [data-de] { display: none; }
 
+    /* ── Keyboard focus (mouse clicks don't trigger :focus-visible) ── */
+    :focus-visible { outline: 2px solid var(--ok); outline-offset: 2px; }
+
     /* ── Footer ── */
     .site-footer {
+      margin-top: auto;
       border-top: 1px solid var(--border);
       padding: .85rem 1.25rem;
       font-size: 11px;
@@ -244,12 +253,49 @@
     .footer-apis {
       display: flex;
       flex-wrap: wrap;
-      gap: .35rem .75rem;
+      gap: .35rem 1rem;
       justify-content: center;
       margin-top: .35rem;
     }
-    .footer-apis span::before { content: '·'; margin-right: .75rem; }
-    .footer-apis span:first-child::before { content: ''; margin-right: 0; }
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .35rem 1rem;
+      justify-content: center;
+    }
+    .footer-support { margin-bottom: .6rem; }
+    .site-footer a.coffee-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .3rem .85rem;
+      border: 1px solid var(--amber); /* fallback without color-mix */
+      border: 1px solid color-mix(in srgb, var(--amber) 55%, transparent);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--amber) 10%, transparent);
+      color: var(--amber);
+      font-size: 12px;
+      font-weight: 600;
+      transition: background .15s, border-color .15s, transform .15s;
+    }
+    .site-footer a.coffee-btn:hover,
+    .site-footer a.coffee-btn:focus-visible {
+      background: color-mix(in srgb, var(--amber) 18%, transparent);
+      border-color: var(--amber);
+      color: var(--amber);
+      transform: translateY(-1px);
+    }
+    /* On the light-blue background a transparent amber tint reads as muddy;
+       use a near-white base instead. */
+    html[data-theme="light"] .site-footer a.coffee-btn { background: #fffaf0; }
+    html[data-theme="light"] .site-footer a.coffee-btn:hover,
+    html[data-theme="light"] .site-footer a.coffee-btn:focus-visible { background: #fff1d6; }
+    .coffee-btn .coffee-cup { display: inline-block; transition: transform .2s; }
+    .coffee-btn:hover .coffee-cup { transform: rotate(-12deg); }
+    @media (prefers-reduced-motion: reduce) {
+      .site-footer a.coffee-btn, .coffee-btn .coffee-cup { transition: none; }
+      .site-footer a.coffee-btn:hover, .coffee-btn:hover .coffee-cup { transform: none; }
+    }
   </style>
 </head>
 <body>
@@ -295,11 +341,14 @@ function toggleTheme() {
 
 {{define "footer"}}
 <footer class="site-footer">
-  <div>© 2026 <a href="https://ozimmermann.com" target="_blank" rel="noopener">Oliver Zimmermann</a> ·
-    <a href="mailto:info@drohnenwetter.de">info@drohnenwetter.de</a> ·
-    <a href="/impressum"><span data-de>Impressum</span><span data-en>Legal Notice</span></a> ·
-    <a href="/datenschutz"><span data-de>Datenschutz</span><span data-en>Privacy</span></a> ·
-    <a href="https://ko-fi.com/olizimmermann" target="_blank" rel="noopener">☕ <span data-de>Kaffee spendieren</span><span data-en>Buy me a coffee</span></a>
+  <div class="footer-support">
+    <a class="coffee-btn" href="https://ko-fi.com/olizimmermann" target="_blank" rel="noopener"><span class="coffee-cup" aria-hidden="true">☕</span><span data-de>Kaffee spendieren</span><span data-en>Buy me a coffee</span></a>
+  </div>
+  <div class="footer-links">
+    <span>© 2026 <a href="https://ozimmermann.com" target="_blank" rel="noopener">Oliver Zimmermann</a></span>
+    <a href="mailto:info@drohnenwetter.de">info@drohnenwetter.de</a>
+    <a href="/impressum"><span data-de>Impressum</span><span data-en>Legal Notice</span></a>
+    <a href="/datenschutz"><span data-de>Datenschutz</span><span data-en>Privacy</span></a>
   </div>
   <div class="footer-apis">
     <span><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></span>

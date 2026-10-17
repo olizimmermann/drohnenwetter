@@ -15,7 +15,7 @@
   }
 
   .page {
-    min-height: calc(100vh - 60px); /* leave room for footer */
+    flex: 1 0 auto; /* fills the screen above the footer (see body in base.html) */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -82,6 +82,7 @@
   }
   input[type="text"]::placeholder { color: var(--muted); }
   input[type="text"]:focus { border-color: var(--ok); box-shadow: 0 0 0 3px rgba(0,212,255,.12); }
+  input[type="text"]:focus-visible { outline: none; }
 
   html[data-theme="light"] input[type="text"]:focus {
     box-shadow: 0 0 0 3px rgba(0,136,170,.15);

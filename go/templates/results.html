@@ -25,7 +25,7 @@
     min-width: 0;
   }
 
-  .dashboard { padding: 1rem; max-width: 1400px; margin: 0 auto; }
+  .dashboard { padding: 1rem; max-width: 1400px; margin: 0 auto; width: 100%; }
 
   /* ── Mobile ── */
   @media (max-width: 480px) {
@@ -37,6 +37,7 @@
     .detail-grid { grid-template-columns: 1fr; }
     .topbar { padding: .55rem .75rem; }
     .location-label { font-size: 12px; }
+    .back-text { display: none; }
     .metric-card--status { display: none; }
   }
 
@@ -54,7 +55,7 @@
   /* ── Metric cards ── */
   .metrics-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem; margin-bottom: 1.25rem;
   }
   .metric-card {
@@ -118,6 +119,18 @@
   .zone-detail-row { display: flex; gap: .4rem; font-size: 11px; color: var(--muted); line-height: 1.6; }
   .zone-detail-label { flex-shrink: 0; }
   .zone-detail-value { color: var(--text); }
+  .zone-rule {
+    margin: .3rem 0 .35rem;
+    padding: .4rem .6rem;
+    border-left: 2px solid var(--amber);
+    background: var(--surface);
+    border-radius: 0 6px 6px 0;
+    font-size: 11.5px; line-height: 1.5; color: var(--text);
+  }
+  .zone-rule > div + div { margin-top: .3rem; }
+  .zone-rule-height { font-weight: 600; }
+  .zone-rule-link { color: var(--ok); }
+  .zones-note { padding: .6rem 1rem; font-size: 10.5px; color: var(--muted); border-top: 1px solid var(--border); }
   .no-zones { padding: 1.5rem 1rem; text-align: center; color: var(--muted); font-size: 13px; }
 
 
@@ -147,7 +160,7 @@
     cursor: pointer; text-transform: none; letter-spacing: 0;
   }
   .unit-toggle:hover { background: var(--muted); }
-  .unit-toggle:focus { outline: none; background: var(--border); }
+  .unit-toggle:focus { background: var(--border); }
   .detail-row {
     display: flex; justify-content: space-between; align-items: center;
     padding: .5rem 1rem; font-size: 13px;
@@ -170,15 +183,16 @@
   }
   .warning-item .dismiss-btn, .data-warning-item .dismiss-btn, .advisory-item .dismiss-btn {
     margin-left: auto; flex-shrink: 0;
-    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.15);
-    border-radius: 6px; cursor: pointer;
-    font-size: 11px; padding: .35rem .6rem;
-    min-width: 44px; min-height: 44px;
+    background: transparent;
+    border: 1px solid currentColor; /* fallback without color-mix */
+    border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+    border-radius: 999px; cursor: pointer;
+    font-size: 11px; font-weight: 600; padding: .25rem .75rem;
+    min-width: 44px; min-height: 32px;
     display: inline-flex; align-items: center; justify-content: center;
-    color: inherit; opacity: .7; white-space: nowrap;
+    color: inherit; opacity: .85; white-space: nowrap;
   }
-  .warning-item .dismiss-btn:hover, .data-warning-item .dismiss-btn:hover, .advisory-item .dismiss-btn:hover { opacity: 1; background: rgba(255,255,255,.2); }
-  .warning-item .dismiss-btn:focus, .data-warning-item .dismiss-btn:focus, .advisory-item .dismiss-btn:focus { outline: none; }
+  .warning-item .dismiss-btn:hover, .data-warning-item .dismiss-btn:hover, .advisory-item .dismiss-btn:hover { opacity: 1; background: color-mix(in srgb, currentColor 12%, transparent); }
   .data-warning-item {
     display: flex; align-items: center; gap: .5rem;
     padding: .55rem .9rem;
@@ -253,7 +267,7 @@
 
 <header class="topbar">
   <div class="topbar-left">
-    <a class="back-link" href="/">← Start</a>
+    <a class="back-link" href="/" aria-label="Start">←<span class="back-text"> Start</span></a>
     <span class="location-label">📍 {{.Address}}</span>
   </div>
   <div class="controls">
@@ -442,11 +456,11 @@
       <div class="zones-list">
         {{if .Zones}}
           {{range .Zones}}
-          <div class="zone-item" onclick="this.classList.toggle('open')">
+          <div class="zone-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleZone(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleZone(this)}">
             <div class="zone-item-header">
               <div class="zone-swatch" style="background:var(--zone-{{.TypeCode}},#888)"></div>
               <div>
-                <div class="zone-name">{{.TypeCode}}</div>
+                <div class="zone-name" title="{{.TypeCode}}"><span data-de>{{zoneLabel .TypeCode "de"}}</span><span data-en>{{zoneLabel .TypeCode "en"}}</span></div>
                 <div class="zone-type">{{.TotalRecords}} <span data-de>Zone(n)</span><span data-en>zone(s)</span></div>
               </div>
               <div class="zone-chevron">▶</div>
@@ -454,21 +468,35 @@
             <div class="zone-details">
               {{range .Areas}}
               <div class="zone-detail-area">
-                {{if index . "name"}}<div class="zone-detail-area-name">{{index . "name"}}</div>{{end}}
+                {{range zoneNames (index . "name")}}<div class="zone-detail-area-name">{{.}}</div>{{end}}
+                {{$rule := zoneRule .}}
+                {{if $rule.HasRule}}
+                <div class="zone-rule">
+                  <div><span data-de>{{$rule.DE}}</span><span data-en>{{$rule.EN}}</span></div>
+                  {{if $rule.HeightDE}}<div class="zone-rule-height"><span data-de>{{$rule.HeightDE}}</span><span data-en>{{$rule.HeightEN}}</span></div>{{end}}
+                  {{if $rule.LocalDE}}<div class="zone-rule-height"><span data-de>{{$rule.LocalDE}}</span><span data-en>{{$rule.LocalEN}}</span></div>{{end}}
+                  {{if $rule.ConditionsDE}}<div><span data-de>{{$rule.ConditionsDE}}</span><span data-en>{{$rule.ConditionsEN}}</span></div>{{end}}
+                  {{if $rule.LinkDE}}<div><a class="zone-rule-link" href="{{$rule.LinkDE}}" data-de target="_blank" rel="noopener" onclick="event.stopPropagation()">Rechtsgrundlage bei DiPUL ↗</a><a class="zone-rule-link" href="{{$rule.LinkEN}}" data-en target="_blank" rel="noopener" onclick="event.stopPropagation()">Legal basis at DiPUL ↗</a></div>{{end}}
+                </div>
+                {{end}}
                 {{if index . "legalReference"}}
                 <div class="zone-detail-row"><span class="zone-detail-label" data-de>Rechtsgrundlage:</span><span class="zone-detail-label" data-en>Legal ref.:</span><span class="zone-detail-value">{{index . "legalReference"}}</span></div>
                 {{end}}
                 {{if index . "lowerLimitAltitude"}}
-                <div class="zone-detail-row"><span class="zone-detail-label" data-de>Untergrenze:</span><span class="zone-detail-label" data-en>Lower limit:</span><span class="zone-detail-value">{{index . "lowerLimitAltitude"}} {{index . "lowerLimitUnit"}} {{index . "lowerLimitReference"}}</span></div>
+                <div class="zone-detail-row"><span class="zone-detail-label" data-de>Zonenuntergrenze:</span><span class="zone-detail-label" data-en>Zone floor:</span><span class="zone-detail-value">{{index . "lowerLimitAltitude"}} {{index . "lowerLimitUnit"}} {{index . "lowerLimitReference"}}</span></div>
                 {{end}}
                 {{if index . "upperLimitAltitude"}}
-                <div class="zone-detail-row"><span class="zone-detail-label" data-de>Obergrenze:</span><span class="zone-detail-label" data-en>Upper limit:</span><span class="zone-detail-value">{{index . "upperLimitAltitude"}} {{index . "upperLimitUnit"}} {{index . "upperLimitReference"}}</span></div>
+                <div class="zone-detail-row"><span class="zone-detail-label" data-de>Zonenobergrenze:</span><span class="zone-detail-label" data-en>Zone ceiling:</span><span class="zone-detail-value">{{index . "upperLimitAltitude"}} {{index . "upperLimitUnit"}} {{index . "upperLimitReference"}}</span></div>
                 {{end}}
               </div>
               {{end}}
             </div>
           </div>
           {{end}}
+          <div class="zones-note">
+            <span data-de>Regeln als Kurzfassung – verbindlich sind LuftVO und die genannten NfL.</span>
+            <span data-en>Rules in brief – the LuftVO and the cited NfL are binding.</span>
+          </div>
         {{else}}
           <div class="no-zones">
             <div style="font-size:1.4rem;margin-bottom:.4rem">✅</div>
@@ -561,6 +589,12 @@
         <span class="detail-key">Kp-Index</span>
         <span class="detail-val {{if $a.KpOK}}ok{{else}}warn{{end}}">{{printf "%.1f" $a.KpIndex}}</span>
       </div>
+      {{if .HasGround}}
+      <div class="detail-row">
+        <span class="detail-key" data-de>Geländehöhe</span><span class="detail-key" data-en>Terrain elevation</span>
+        <span class="detail-val">{{printf "%.0f" .GroundMSL}} m <span data-de>ü. NN</span><span data-en>AMSL</span></span>
+      </div>
+      {{end}}
       <div class="detail-title-row" style="border-top:1px solid var(--border);padding-top:.5rem;margin-top:.5rem">
         <div>
           <span>METAR / TAF</span>
@@ -732,6 +766,10 @@
   // ── Init map — zoom 17 to match original ─────────────────────────────────
   var weatherFlyable = {{if .WeatherFlyable}}true{{else}}false{{end}};
 
+  window.toggleZone = function(el) {
+    var open = el.classList.toggle('open');
+    el.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
   window.dismissZoneWarning = function(btn) {
     btn.closest('.warning-item').remove();
     if (weatherFlyable) {

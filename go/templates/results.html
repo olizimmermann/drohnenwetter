@@ -37,6 +37,7 @@
     .detail-grid { grid-template-columns: 1fr; }
     .topbar { padding: .55rem .75rem; }
     .location-label { font-size: 12px; }
+    .back-text { display: none; }
     .metric-card--status { display: none; }
   }
 
@@ -54,7 +55,7 @@
   /* ── Metric cards ── */
   .metrics-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem; margin-bottom: 1.25rem;
   }
   .metric-card {
@@ -147,7 +148,7 @@
     cursor: pointer; text-transform: none; letter-spacing: 0;
   }
   .unit-toggle:hover { background: var(--muted); }
-  .unit-toggle:focus { outline: none; background: var(--border); }
+  .unit-toggle:focus { background: var(--border); }
   .detail-row {
     display: flex; justify-content: space-between; align-items: center;
     padding: .5rem 1rem; font-size: 13px;
@@ -170,15 +171,16 @@
   }
   .warning-item .dismiss-btn, .data-warning-item .dismiss-btn, .advisory-item .dismiss-btn {
     margin-left: auto; flex-shrink: 0;
-    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.15);
-    border-radius: 6px; cursor: pointer;
-    font-size: 11px; padding: .35rem .6rem;
-    min-width: 44px; min-height: 44px;
+    background: transparent;
+    border: 1px solid currentColor; /* fallback without color-mix */
+    border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+    border-radius: 999px; cursor: pointer;
+    font-size: 11px; font-weight: 600; padding: .25rem .75rem;
+    min-width: 44px; min-height: 32px;
     display: inline-flex; align-items: center; justify-content: center;
-    color: inherit; opacity: .7; white-space: nowrap;
+    color: inherit; opacity: .85; white-space: nowrap;
   }
-  .warning-item .dismiss-btn:hover, .data-warning-item .dismiss-btn:hover, .advisory-item .dismiss-btn:hover { opacity: 1; background: rgba(255,255,255,.2); }
-  .warning-item .dismiss-btn:focus, .data-warning-item .dismiss-btn:focus, .advisory-item .dismiss-btn:focus { outline: none; }
+  .warning-item .dismiss-btn:hover, .data-warning-item .dismiss-btn:hover, .advisory-item .dismiss-btn:hover { opacity: 1; background: color-mix(in srgb, currentColor 12%, transparent); }
   .data-warning-item {
     display: flex; align-items: center; gap: .5rem;
     padding: .55rem .9rem;
@@ -253,7 +255,7 @@
 
 <header class="topbar">
   <div class="topbar-left">
-    <a class="back-link" href="/">← Start</a>
+    <a class="back-link" href="/" aria-label="Start">←<span class="back-text"> Start</span></a>
     <span class="location-label">📍 {{.Address}}</span>
   </div>
   <div class="controls">
@@ -442,11 +444,11 @@
       <div class="zones-list">
         {{if .Zones}}
           {{range .Zones}}
-          <div class="zone-item" onclick="this.classList.toggle('open')">
+          <div class="zone-item" role="button" tabindex="0" aria-expanded="false" onclick="toggleZone(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleZone(this)}">
             <div class="zone-item-header">
               <div class="zone-swatch" style="background:var(--zone-{{.TypeCode}},#888)"></div>
               <div>
-                <div class="zone-name">{{.TypeCode}}</div>
+                <div class="zone-name" title="{{.TypeCode}}"><span data-de>{{zoneLabel .TypeCode "de"}}</span><span data-en>{{zoneLabel .TypeCode "en"}}</span></div>
                 <div class="zone-type">{{.TotalRecords}} <span data-de>Zone(n)</span><span data-en>zone(s)</span></div>
               </div>
               <div class="zone-chevron">▶</div>
@@ -732,6 +734,10 @@
   // ── Init map — zoom 17 to match original ─────────────────────────────────
   var weatherFlyable = {{if .WeatherFlyable}}true{{else}}false{{end}};
 
+  window.toggleZone = function(el) {
+    var open = el.classList.toggle('open');
+    el.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
   window.dismissZoneWarning = function(btn) {
     btn.closest('.warning-item').remove();
     if (weatherFlyable) {

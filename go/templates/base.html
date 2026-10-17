@@ -231,6 +231,9 @@
     html[data-lang="de"] [data-en] { display: none; }
     html[data-lang="en"] [data-de] { display: none; }
 
+    /* ── Keyboard focus (mouse clicks don't trigger :focus-visible) ── */
+    :focus-visible { outline: 2px solid var(--ok); outline-offset: 2px; }
+
     /* ── Footer ── */
     .site-footer {
       border-top: 1px solid var(--border);
@@ -244,12 +247,16 @@
     .footer-apis {
       display: flex;
       flex-wrap: wrap;
-      gap: .35rem .75rem;
+      gap: .35rem 1rem;
       justify-content: center;
       margin-top: .35rem;
     }
-    .footer-apis span::before { content: '·'; margin-right: .75rem; }
-    .footer-apis span:first-child::before { content: ''; margin-right: 0; }
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .35rem 1rem;
+      justify-content: center;
+    }
     .footer-support { margin-bottom: .6rem; }
     .site-footer a.coffee-btn {
       display: inline-flex;
@@ -331,9 +338,10 @@ function toggleTheme() {
   <div class="footer-support">
     <a class="coffee-btn" href="https://ko-fi.com/olizimmermann" target="_blank" rel="noopener"><span class="coffee-cup" aria-hidden="true">☕</span><span data-de>Kaffee spendieren</span><span data-en>Buy me a coffee</span></a>
   </div>
-  <div>© 2026 <a href="https://ozimmermann.com" target="_blank" rel="noopener">Oliver Zimmermann</a> ·
-    <a href="mailto:info@drohnenwetter.de">info@drohnenwetter.de</a> ·
-    <a href="/impressum"><span data-de>Impressum</span><span data-en>Legal Notice</span></a> ·
+  <div class="footer-links">
+    <span>© 2026 <a href="https://ozimmermann.com" target="_blank" rel="noopener">Oliver Zimmermann</a></span>
+    <a href="mailto:info@drohnenwetter.de">info@drohnenwetter.de</a>
+    <a href="/impressum"><span data-de>Impressum</span><span data-en>Legal Notice</span></a>
     <a href="/datenschutz"><span data-de>Datenschutz</span><span data-en>Privacy</span></a>
   </div>
   <div class="footer-apis">

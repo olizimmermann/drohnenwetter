@@ -2,9 +2,15 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 )
+
+// ErrNotFound means the geocoder reached the provider successfully but found no
+// match for the query. It is distinct from a transport/gateway failure, so
+// callers can tell "no such address" apart from "service unreachable".
+var ErrNotFound = errors.New("no match found")
 
 type GeocodeResult struct {
 	Lat         float64
@@ -36,9 +42,6 @@ func ReverseGeocode(lat, lon float64, hereAPIKey string) (*GeocodeResult, error)
 	params := url.Values{}
 	params.Set("at", fmt.Sprintf("%f,%f", lat, lon))
 	params.Set("lang", "de")
-	params.Set("apiKey", hereAPIKey)
-
-	rawURL := "https://revgeocode.search.hereapi.com/v1/revgeocode?" + params.Encode()
 
 	headers := map[string]string{
 		"User-Agent":      "drohnenwetter/1.0",
@@ -46,7 +49,7 @@ func ReverseGeocode(lat, lon float64, hereAPIKey string) (*GeocodeResult, error)
 		"Accept-Language": "de-DE,de;q=0.9",
 	}
 
-	body, err := doGet(rawURL, headers)
+	body, err := gatewayGet("/here/revgeocode/v1/revgeocode?"+params.Encode(), hereAPIKey, headers)
 	if err != nil {
 		return nil, fmt.Errorf("revgeocode request: %w", err)
 	}
@@ -56,7 +59,7 @@ func ReverseGeocode(lat, lon float64, hereAPIKey string) (*GeocodeResult, error)
 		return nil, fmt.Errorf("revgeocode parse: %w", err)
 	}
 	if len(resp.Items) == 0 {
-		return nil, fmt.Errorf("no address found for coordinates")
+		return nil, fmt.Errorf("revgeocode: %w", ErrNotFound)
 	}
 
 	item := resp.Items[0]
@@ -77,9 +80,6 @@ func Geocode(address, hereAPIKey string) (*GeocodeResult, error) {
 	params.Set("in", "countryCode:DEU")
 	params.Set("limit", "1")
 	params.Set("lang", "de")
-	params.Set("apiKey", hereAPIKey)
-
-	rawURL := "https://geocode.search.hereapi.com/v1/geocode?" + params.Encode()
 
 	headers := map[string]string{
 		"User-Agent":      "drohnenwetter/1.0",
@@ -87,7 +87,7 @@ func Geocode(address, hereAPIKey string) (*GeocodeResult, error) {
 		"Accept-Language": "de-DE,de;q=0.9",
 	}
 
-	body, err := doGet(rawURL, headers)
+	body, err := gatewayGet("/here/geocode/v1/geocode?"+params.Encode(), hereAPIKey, headers)
 	if err != nil {
 		return nil, fmt.Errorf("geocode request: %w", err)
 	}
@@ -97,7 +97,7 @@ func Geocode(address, hereAPIKey string) (*GeocodeResult, error) {
 		return nil, fmt.Errorf("geocode parse: %w", err)
 	}
 	if len(resp.Items) == 0 {
-		return nil, fmt.Errorf("address not found")
+		return nil, fmt.Errorf("geocode: %w", ErrNotFound)
 	}
 
 	item := resp.Items[0]

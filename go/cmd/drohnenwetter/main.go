@@ -6,6 +6,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -123,9 +124,32 @@ func loadTemplates(dir string) *template.Template {
 	return tmpl
 }
 
+// validateGatewayConfig logs prominent warnings if the API gateway env is
+// missing or malformed. It is non-fatal so the static/legal pages still serve,
+// but it surfaces a misconfiguration at startup instead of only as failing
+// lookups (which otherwise look "healthy" to the load balancer).
+func validateGatewayConfig() {
+	switch base := os.Getenv("GATEWAY_BASE_URL"); {
+	case base == "":
+		log.Print("WARNING: GATEWAY_BASE_URL is not set — HERE geocoding and OpenWeather will be unavailable")
+	default:
+		if u, err := url.Parse(base); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			log.Printf("WARNING: GATEWAY_BASE_URL=%q is malformed — expected scheme://host[:port], e.g. https://api.drohnenwetter.de", base)
+		}
+	}
+	if os.Getenv("GATEWAY_HERE_KEY") == "" {
+		log.Print("WARNING: GATEWAY_HERE_KEY is not set — HERE geocoding will fail with 401")
+	}
+	if os.Getenv("GATEWAY_OWM_KEY") == "" {
+		log.Print("WARNING: GATEWAY_OWM_KEY is not set — OpenWeather will fail with 401")
+	}
+}
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 func main() {
+	validateGatewayConfig()
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -179,11 +203,22 @@ func main() {
 	mux.Handle("/track", rateLimitMiddleware(http.HandlerFunc(handler.TrackHandler)))
 	mux.Handle("/traffic", rateLimitMiddleware(http.HandlerFunc(handler.TrafficHandler)))
 	mux.Handle("/", rateLimitMiddleware(handler.NewHomeHandler(tmpl)))
-	mux.Handle("/results", rateLimitMiddleware(handler.NewResultsHandler(
+	// HERE and OpenWeather are reached through our API gateway; these are the
+	// route-scoped gateway keys (X-API-Key), not provider credentials.
+	resultsHandler := handler.NewResultsHandler(
 		tmpl,
-		os.Getenv("HERE_API_KEY"),
-		os.Getenv("OPENWEATHER_TOKEN"),
-	)))
+		os.Getenv("GATEWAY_HERE_KEY"),
+		os.Getenv("GATEWAY_OWM_KEY"),
+	)
+	mux.Handle("/results", rateLimitMiddleware(resultsHandler))
+	// Dispatcher API. Deliberately NOT behind the per-IP limiter: every call
+	// arrives from the zateway host, which already rate-limits per API key.
+	// Without DW_API_SECRET the route answers 404 for everyone.
+	apiSecret := os.Getenv("DW_API_SECRET")
+	if apiSecret == "" {
+		log.Print("WARNING: DW_API_SECRET is not set — dispatcher API /api/v1 is disabled")
+	}
+	mux.Handle("/api/v1/assessment", handler.APIAuth(apiSecret, handler.NewAPIHandler(resultsHandler)))
 
 	go cleanLimiters()
 

@@ -157,12 +157,9 @@ func FetchOpenWeather(lat, lon float64, token string) (*OWResponse, error) {
 	params.Set("lat", fmt.Sprintf("%f", lat))
 	params.Set("lon", fmt.Sprintf("%f", lon))
 	params.Set("exclude", "minutely,hourly,daily,alerts")
-	params.Set("appid", token)
 	params.Set("units", "metric")
 
-	rawURL := "https://api.openweathermap.org/data/3.0/onecall?" + params.Encode()
-
-	body, err := doGet(rawURL, nil)
+	body, err := gatewayGet("/owm/data/3.0/onecall?"+params.Encode(), token, nil)
 	if err != nil {
 		return nil, fmt.Errorf("OpenWeather: %w", err)
 	}

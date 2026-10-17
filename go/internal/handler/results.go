@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"log"
@@ -23,15 +24,24 @@ type ResultsHandler struct {
 	hereAPIKey string
 	owToken    string
 	cache      *resultCache
+
+	// Data-source hooks. They default to the real api package functions and
+	// exist so the JSON API can be tested without network access.
+	geocodeFn        func(address, key string) (*api.GeocodeResult, error)
+	reverseGeocodeFn func(lat, lon float64, key string) (*api.GeocodeResult, error)
+	fetchFn          func(lat, lon float64, city string, withTraffic bool) (*allFetched, bool)
 }
 
 func NewResultsHandler(tmpl *template.Template, hereAPIKey, owToken string) *ResultsHandler {
 	rh := &ResultsHandler{
-		tmpl:       tmpl,
-		hereAPIKey: hereAPIKey,
-		owToken:    owToken,
-		cache:      newResultCache(1000, 5*time.Minute),
+		tmpl:             tmpl,
+		hereAPIKey:       hereAPIKey,
+		owToken:          owToken,
+		cache:            newResultCache(1000, 5*time.Minute),
+		geocodeFn:        api.Geocode,
+		reverseGeocodeFn: api.ReverseGeocode,
 	}
+	rh.fetchFn = rh.fetchAll
 	rh.cache.startCleanup(1 * time.Minute)
 	return rh
 }
@@ -65,19 +75,33 @@ type allFetched struct {
 	cloudBase  *api.CloudBaseResult
 	traffic    []api.AircraftState
 	errs       [5]error
+
+	// trafficFetched is false when OpenSky was skipped (API keys without the
+	// opensky feature); traffic/errs[4] are then meaningless.
+	trafficFetched bool
 }
 
-func (h *ResultsHandler) fetchAll(lat, lon float64, city string) *allFetched {
+// fetchAll gathers all data sources in parallel. OpenSky is only queried when
+// withTraffic is set. The second return value reports a cache hit.
+func (h *ResultsHandler) fetchAll(lat, lon float64, city string, withTraffic bool) (*allFetched, bool) {
 	key := cacheKey(lat, lon)
 	if cached, ok := h.cache.get(key); ok {
 		log.Printf("[cache] hit for %s", key)
-		return cached
+		if withTraffic && !cached.trafficFetched {
+			// Cached by a traffic-less API call: top up OpenSky on a copy so
+			// the shared cache entry is never mutated.
+			cp := *cached
+			cp.traffic, cp.errs[4] = api.FetchNearbyTraffic(lat, lon)
+			cp.trafficFetched = true
+			return &cp, true
+		}
+		return cached, true
 	}
 
 	var wg sync.WaitGroup
-	out := &allFetched{}
+	out := &allFetched{trafficFetched: withTraffic}
 
-	wg.Add(6)
+	wg.Add(5)
 	go func() {
 		defer wg.Done()
 		out.utm, out.errs[0] = api.FetchUTMForecast(lat, lon)
@@ -98,10 +122,13 @@ func (h *ResultsHandler) fetchAll(lat, lon float64, city string) *allFetched {
 		defer wg.Done()
 		out.cloudBase = api.FetchCloudBase(city) // never errors; check .Available
 	}()
-	go func() {
-		defer wg.Done()
-		out.traffic, out.errs[4] = api.FetchNearbyTraffic(lat, lon)
-	}()
+	if withTraffic {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			out.traffic, out.errs[4] = api.FetchNearbyTraffic(lat, lon)
+		}()
+	}
 	wg.Wait()
 
 	// Cache only if the critical UTM data succeeded
@@ -109,7 +136,108 @@ func (h *ResultsHandler) fetchAll(lat, lon float64, city string) *allFetched {
 		h.cache.set(key, out)
 	}
 
-	return out
+	return out, false
+}
+
+// evaluation is the verdict derived from fetched data. Shared by the HTML
+// results page and the JSON API so both always apply identical safety logic.
+type evaluation struct {
+	assessment     *assessment.Assessment
+	hasRedZone     bool
+	hasOrangeZone  bool
+	weatherFlyable bool // weather-only verdict, before the airspace override
+}
+
+// evaluate requires fetched.utm != nil.
+func evaluate(fetched *allFetched) evaluation {
+	var ev evaluation
+	for _, z := range fetched.zones {
+		switch z.TypeCode {
+		case "FLIGHT_RESTRICTION", "U_NFZ":
+			ev.hasRedZone = true
+		// DiPUL reports control zones as U_CTR; CONTROL_ZONE is the older code.
+		case "CONTROL_ZONE", "U_CTR", "AIRPORT", "AIRFIELD_LAW", "MILITARY":
+			ev.hasOrangeZone = true
+		}
+	}
+
+	ev.assessment = assessment.Assess(fetched.utm, fetched.ow, fetched.kp)
+	ev.weatherFlyable = ev.assessment.Flyable // capture before zone override
+
+	// Restricted or controlled airspace overrides weather-only assessment.
+	if ev.hasRedZone || ev.hasOrangeZone {
+		ev.assessment.Flyable = false
+	}
+	return ev
+}
+
+// locError describes why a location could not be resolved.
+type locError struct {
+	status     int // HTTP status for the JSON API
+	code       string
+	de, en     string
+	retryAfter time.Duration // rate_limited only: upstream Retry-After hint
+}
+
+var (
+	errLocAddressEmpty   = &locError{status: http.StatusBadRequest, code: "address_missing", de: "Bitte geben Sie eine Adresse ein.", en: "Please enter an address."}
+	errLocAddressTooLong = &locError{status: http.StatusBadRequest, code: "address_too_long", de: "Adresse zu lang (max. 100 Zeichen).", en: "Address too long (max. 100 characters)."}
+	errLocNotFound       = &locError{status: http.StatusNotFound, code: "address_not_found", de: "Adresse nicht gefunden. Bitte prüfen Sie die Eingabe.", en: "Address not found. Please check your input."}
+	errLocRateLimited    = &locError{status: http.StatusTooManyRequests, code: "rate_limited", de: "Zu viele Anfragen. Bitte versuchen Sie es in Kürze erneut.", en: "Too many requests. Please try again shortly."}
+	errLocUnavailable    = &locError{status: http.StatusServiceUnavailable, code: "geocoder_unavailable", de: "Adresssuche derzeit nicht verfügbar. Bitte versuchen Sie es in Kürze erneut.", en: "Address lookup is temporarily unavailable. Please try again shortly."}
+)
+
+// validCoords rejects NaN/Inf, out-of-range and exact-zero coordinates
+// (0 is what a broken GPS form submission produces).
+func validCoords(lat, lon float64) bool {
+	return !(lat == 0 || lon == 0 ||
+		math.IsNaN(lat) || math.IsNaN(lon) || math.IsInf(lat, 0) || math.IsInf(lon, 0) ||
+		lat < -90 || lat > 90 || lon < -180 || lon > 180)
+}
+
+// resolveCoords reverse-geocodes a coordinate pair. A geocoder failure is
+// non-fatal: the result then carries the raw coordinates as its title.
+func (h *ResultsHandler) resolveCoords(lat, lon float64) *api.GeocodeResult {
+	geo, err := h.reverseGeocodeFn(lat, lon, h.hereAPIKey)
+	if err != nil {
+		log.Printf("[results] revgeocode error: %v", err)
+		geo = &api.GeocodeResult{
+			Lat:   lat,
+			Lon:   lon,
+			Title: fmt.Sprintf("%.5f, %.5f", lat, lon),
+		}
+	}
+	return geo
+}
+
+// resolveAddress geocodes free-text input, detecting pasted coordinates.
+// mode is "coords" or "address".
+func (h *ResultsHandler) resolveAddress(address string) (geo *api.GeocodeResult, mode string, lerr *locError) {
+	if address == "" {
+		return nil, "address", errLocAddressEmpty
+	}
+	if len(address) > 100 {
+		return nil, "address", errLocAddressTooLong
+	}
+	if lat, lon, ok := parseCoords(address); ok {
+		// Looks like pasted coordinates — use reverse geocode
+		return h.resolveCoords(lat, lon), "coords", nil
+	}
+	geo, err := h.geocodeFn(address, h.hereAPIKey)
+	if err != nil {
+		log.Printf("[results] geocode error: %v", err)
+		switch {
+		case errors.Is(err, api.ErrNotFound):
+			return nil, "address", errLocNotFound
+		case errors.Is(err, api.ErrRateLimited):
+			rl := *errLocRateLimited
+			rl.retryAfter = api.RetryAfter(err)
+			return nil, "address", &rl
+		default:
+			return nil, "address", errLocUnavailable
+		}
+	}
+	return geo, "address", nil
 }
 
 // coordRe matches "lat, lon" or "lat lon" in decimal degree format.
@@ -158,61 +286,27 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// GPS path: coordinates supplied by the browser
 		lat, errLat := strconv.ParseFloat(latStr, 64)
 		lon, errLon := strconv.ParseFloat(lonStr, 64)
-		if errLat != nil || errLon != nil || lat == 0 || lon == 0 ||
-			math.IsNaN(lat) || math.IsNaN(lon) || math.IsInf(lat, 0) || math.IsInf(lon, 0) {
+		if errLat != nil || errLon != nil || !validCoords(lat, lon) {
 			h.renderError(w, "Ungültige GPS-Koordinaten.", "Invalid GPS coordinates.")
 			return
 		}
-		var err error
-		geo, err = api.ReverseGeocode(lat, lon, h.hereAPIKey)
-		if err != nil {
-			// Reverse geocode failed — still usable, just show raw coords
-			log.Printf("[results] revgeocode error: %v", err)
-			geo = &api.GeocodeResult{
-				Lat:   lat,
-				Lon:   lon,
-				Title: fmt.Sprintf("%.5f, %.5f", lat, lon),
-			}
-		}
+		geo = h.resolveCoords(lat, lon)
 		logLookup("gps", geo, clientIP(r))
 	} else {
 		// Address path: forward geocode (or coordinate paste detection)
-		address := r.FormValue("address")
-		if address == "" {
-			h.renderError(w, "Bitte geben Sie eine Adresse ein.", "Please enter an address.")
+		var (
+			mode string
+			lerr *locError
+		)
+		geo, mode, lerr = h.resolveAddress(r.FormValue("address"))
+		if lerr != nil {
+			h.renderError(w, lerr.de, lerr.en)
 			return
 		}
-		if len(address) > 100 {
-			h.renderError(w, "Adresse zu lang (max. 100 Zeichen).", "Address too long (max. 100 characters).")
-			return
-		}
-
-		var err error
-		if lat, lon, ok := parseCoords(address); ok {
-			// Looks like pasted coordinates — use reverse geocode
-			geo, err = api.ReverseGeocode(lat, lon, h.hereAPIKey)
-			if err != nil {
-				log.Printf("[results] revgeocode error: %v", err)
-				geo = &api.GeocodeResult{
-					Lat:   lat,
-					Lon:   lon,
-					Title: fmt.Sprintf("%.5f, %.5f", lat, lon),
-				}
-			}
-			logLookup("coords", geo, clientIP(r))
-		} else {
-			// Normal address — forward geocode
-			geo, err = api.Geocode(address, h.hereAPIKey)
-			if err != nil {
-				log.Printf("[results] geocode error: %v", err)
-				h.renderError(w, "Adresse nicht gefunden. Bitte prüfen Sie die Eingabe.", "Address not found. Please check your input.")
-				return
-			}
-			logLookup("address", geo, clientIP(r))
-		}
+		logLookup(mode, geo, clientIP(r))
 	}
 
-	fetched := h.fetchAll(geo.Lat, geo.Lon, geo.City)
+	fetched, _ := h.fetchFn(geo.Lat, geo.Lon, geo.City, true)
 
 	labels := []string{"UTM", "OpenWeather", "Kp-Index", "DiPUL", "OpenSky"}
 	for i, e := range fetched.errs {
@@ -231,24 +325,7 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	dipulFailed   := fetched.errs[3] != nil
 	trafficFailed := fetched.errs[4] != nil
 
-	var hasRedZone, hasOrangeZone bool
-	for _, z := range fetched.zones {
-		switch z.TypeCode {
-		case "FLIGHT_RESTRICTION", "U_NFZ":
-			hasRedZone = true
-		// DiPUL reports control zones as U_CTR; CONTROL_ZONE is the older code.
-		case "CONTROL_ZONE", "U_CTR", "AIRPORT", "AIRFIELD_LAW", "MILITARY":
-			hasOrangeZone = true
-		}
-	}
-
-	a := assessment.Assess(fetched.utm, fetched.ow, fetched.kp)
-	weatherFlyable := a.Flyable // capture before zone override
-
-	// Restricted or controlled airspace overrides weather-only assessment.
-	if hasRedZone || hasOrangeZone {
-		a.Flyable = false
-	}
+	ev := evaluate(fetched)
 
 	// Serialize zones to JSON for direct injection into the Leaflet map script.
 	zonesJSON, err := json.Marshal(fetched.zones)
@@ -267,7 +344,7 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Address:       geo.Title,
 		Lat:           geo.Lat,
 		Lon:           geo.Lon,
-		Assessment:    a,
+		Assessment:    ev.assessment,
 		Zones:         fetched.zones,
 		ZonesGeoJSON:  template.JS(zonesJSON),
 		CloudBase:     fetched.cloudBase,
@@ -277,9 +354,9 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		KpFailed:      kpFailed,
 		DiPULFailed:   dipulFailed,
 		TrafficFailed: trafficFailed,
-		HasRedZone:     hasRedZone,
-		HasOrangeZone:  hasOrangeZone,
-		WeatherFlyable: weatherFlyable,
+		HasRedZone:     ev.hasRedZone,
+		HasOrangeZone:  ev.hasOrangeZone,
+		WeatherFlyable: ev.weatherFlyable,
 	}
 
 	var buf bytes.Buffer

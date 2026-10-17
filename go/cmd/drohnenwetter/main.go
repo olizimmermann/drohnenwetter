@@ -117,6 +117,8 @@ func loadTemplates(dir string) *template.Template {
 		},
 		"add":   func(a, b int) int { return a + b },
 		"zoneLabel": handler.ZoneLabel,
+		"zoneRule":  handler.ZoneRule,
+		"zoneNames": handler.ZoneNames,
 		"msToKmh": func(ms float64) float64 { return math.Round(ms*3.6*10) / 10 },
 	}
 	tmpl := template.New("").Funcs(funcMap)

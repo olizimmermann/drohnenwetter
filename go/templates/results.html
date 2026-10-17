@@ -119,6 +119,17 @@
   .zone-detail-row { display: flex; gap: .4rem; font-size: 11px; color: var(--muted); line-height: 1.6; }
   .zone-detail-label { flex-shrink: 0; }
   .zone-detail-value { color: var(--text); }
+  .zone-rule {
+    margin: .3rem 0 .35rem;
+    padding: .4rem .6rem;
+    border-left: 2px solid var(--amber);
+    background: var(--surface);
+    border-radius: 0 6px 6px 0;
+    font-size: 11.5px; line-height: 1.5; color: var(--text);
+  }
+  .zone-rule > div + div { margin-top: .3rem; }
+  .zone-rule-height { font-weight: 600; }
+  .zones-note { padding: .6rem 1rem; font-size: 10.5px; color: var(--muted); border-top: 1px solid var(--border); }
   .no-zones { padding: 1.5rem 1rem; text-align: center; color: var(--muted); font-size: 13px; }
 
 
@@ -456,21 +467,33 @@
             <div class="zone-details">
               {{range .Areas}}
               <div class="zone-detail-area">
-                {{if index . "name"}}<div class="zone-detail-area-name">{{index . "name"}}</div>{{end}}
+                {{range zoneNames (index . "name")}}<div class="zone-detail-area-name">{{.}}</div>{{end}}
+                {{$rule := zoneRule .}}
+                {{if $rule.HasRule}}
+                <div class="zone-rule">
+                  <div><span data-de>{{$rule.DE}}</span><span data-en>{{$rule.EN}}</span></div>
+                  {{if $rule.HeightDE}}<div class="zone-rule-height"><span data-de>{{$rule.HeightDE}}</span><span data-en>{{$rule.HeightEN}}</span></div>{{end}}
+                  {{if $rule.ConditionsDE}}<div><span data-de>{{$rule.ConditionsDE}}</span><span data-en>{{$rule.ConditionsEN}}</span></div>{{end}}
+                </div>
+                {{end}}
                 {{if index . "legalReference"}}
                 <div class="zone-detail-row"><span class="zone-detail-label" data-de>Rechtsgrundlage:</span><span class="zone-detail-label" data-en>Legal ref.:</span><span class="zone-detail-value">{{index . "legalReference"}}</span></div>
                 {{end}}
                 {{if index . "lowerLimitAltitude"}}
-                <div class="zone-detail-row"><span class="zone-detail-label" data-de>Untergrenze:</span><span class="zone-detail-label" data-en>Lower limit:</span><span class="zone-detail-value">{{index . "lowerLimitAltitude"}} {{index . "lowerLimitUnit"}} {{index . "lowerLimitReference"}}</span></div>
+                <div class="zone-detail-row"><span class="zone-detail-label" data-de>Zonenuntergrenze:</span><span class="zone-detail-label" data-en>Zone floor:</span><span class="zone-detail-value">{{index . "lowerLimitAltitude"}} {{index . "lowerLimitUnit"}} {{index . "lowerLimitReference"}}</span></div>
                 {{end}}
                 {{if index . "upperLimitAltitude"}}
-                <div class="zone-detail-row"><span class="zone-detail-label" data-de>Obergrenze:</span><span class="zone-detail-label" data-en>Upper limit:</span><span class="zone-detail-value">{{index . "upperLimitAltitude"}} {{index . "upperLimitUnit"}} {{index . "upperLimitReference"}}</span></div>
+                <div class="zone-detail-row"><span class="zone-detail-label" data-de>Zonenobergrenze:</span><span class="zone-detail-label" data-en>Zone ceiling:</span><span class="zone-detail-value">{{index . "upperLimitAltitude"}} {{index . "upperLimitUnit"}} {{index . "upperLimitReference"}}</span></div>
                 {{end}}
               </div>
               {{end}}
             </div>
           </div>
           {{end}}
+          <div class="zones-note">
+            <span data-de>Regeln als Kurzfassung – verbindlich sind LuftVO und die genannten NfL.</span>
+            <span data-en>Rules in brief – the LuftVO and the cited NfL are binding.</span>
+          </div>
         {{else}}
           <div class="no-zones">
             <div style="font-size:1.4rem;margin-bottom:.4rem">✅</div>

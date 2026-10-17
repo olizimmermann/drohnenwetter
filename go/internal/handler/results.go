@@ -53,6 +53,8 @@ type resultsData struct {
 	HasRedZone      bool // ED-R / ED-D / ED-P at this location
 	HasOrangeZone   bool // CTR / ATZ / ED-LR / MILITARY at this location
 	WeatherFlyable  bool // weather-only assessment (ignoring zones)
+	GroundMSL       float64 // terrain height (m above sea level), valid if HasGround
+	HasGround       bool
 	ErrorDE        string
 	ErrorEN        string
 }
@@ -65,6 +67,7 @@ type allFetched struct {
 	cloudBase  *api.CloudBaseResult
 	traffic    []api.AircraftState
 	errs       [5]error
+	ground     *api.Elevation // terrain height; nil if DiPUL elevation failed
 }
 
 func (h *ResultsHandler) fetchAll(lat, lon float64, city string) *allFetched {
@@ -76,8 +79,9 @@ func (h *ResultsHandler) fetchAll(lat, lon float64, city string) *allFetched {
 
 	var wg sync.WaitGroup
 	out := &allFetched{}
+	var edZones []api.UASZone
 
-	wg.Add(6)
+	wg.Add(8)
 	go func() {
 		defer wg.Done()
 		out.utm, out.errs[0] = api.FetchUTMForecast(lat, lon)
@@ -102,7 +106,25 @@ func (h *ResultsHandler) fetchAll(lat, lon float64, city string) *allFetched {
 		defer wg.Done()
 		out.traffic, out.errs[4] = api.FetchNearbyTraffic(lat, lon)
 	}()
+	// Optional extras: on failure the zone list falls back to the general
+	// rule text, so errors are only logged.
+	go func() {
+		defer wg.Done()
+		var err error
+		if out.ground, err = api.FetchGroundElevation(lat, lon); err != nil {
+			log.Printf("[results] elevation error: %v", err)
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		var err error
+		if edZones, err = api.FetchUASZones(lat, lon); err != nil {
+			log.Printf("[results] UAS zones error: %v", err)
+		}
+	}()
 	wg.Wait()
+
+	enrichZones(out.zones, edZones, out.ground)
 
 	// Cache only if the critical UTM data succeeded
 	if out.utm != nil && out.errs[0] == nil {
@@ -280,6 +302,9 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		HasRedZone:     hasRedZone,
 		HasOrangeZone:  hasOrangeZone,
 		WeatherFlyable: weatherFlyable,
+	}
+	if fetched.ground != nil {
+		data.GroundMSL, data.HasGround = fetched.ground.MSL, true
 	}
 
 	var buf bytes.Buffer

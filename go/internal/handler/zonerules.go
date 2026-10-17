@@ -87,7 +87,13 @@ type ZoneRuleInfo struct {
 	HeightEN     string
 	ConditionsDE string
 	ConditionsEN string
-	HasRule      bool
+	// LocalDE/EN: the computed limit at this location (CTR zones 2–4, only
+	// when the ground and aerodrome elevation are known).
+	LocalDE string
+	LocalEN string
+	LinkDE  string
+	LinkEN  string
+	HasRule bool
 }
 
 // ZoneRule derives the plain-language rule for one DiPUL area from its legal
@@ -98,6 +104,11 @@ func ZoneRule(area map[string]interface{}) ZoneRuleInfo {
 		ref = ""
 	}
 	var info ZoneRuleInfo
+	info.LinkDE, _ = area[keyLinkDE].(string)
+	info.LinkEN, _ = area[keyLinkEN].(string)
+	if info.LinkEN == "" {
+		info.LinkEN = info.LinkDE
+	}
 
 	switch {
 	case ref == nflCTR2026:
@@ -109,6 +120,7 @@ func ZoneRule(area map[string]interface{}) ZoneRuleInfo {
 				info.HeightDE, info.HeightEN = r.DE, r.EN
 				if n > 1 {
 					info.ConditionsDE, info.ConditionsEN = ctrGeneralConditions.DE, ctrGeneralConditions.EN
+					info.LocalDE, info.LocalEN = ctrLocalText(area)
 				}
 			}
 		}
@@ -140,4 +152,20 @@ func ZoneNames(v interface{}) []string {
 		}
 	}
 	return out
+}
+
+// ctrLocalText renders the height limit computed by enrichZones.
+func ctrLocalText(area map[string]interface{}) (de, en string) {
+	maxAGL, ok1 := area[keyCTRMaxAGL].(float64)
+	ground, ok2 := area[keyGroundMSL].(float64)
+	aerodrome, ok3 := area[keyAerodromeMSL].(float64)
+	if !ok1 || !ok2 || !ok3 {
+		return "", ""
+	}
+	if maxAGL <= 0 {
+		return fmt.Sprintf("An diesem Standort: keine allgemeine Freigabe über Grund (Gelände %.0f m, Flugplatz %.0f m ü. NN) – individuelle Freigabe nötig, hindernisnahe Flüge ausgenommen.", ground, aerodrome),
+			fmt.Sprintf("At this location: no general clearance above ground (terrain %.0f m, aerodrome %.0f m AMSL) – an individual clearance is required, except for flights close to obstacles.", ground, aerodrome)
+	}
+	return fmt.Sprintf("An diesem Standort: max. ca. %.0f m über Grund (Gelände %.0f m, Flugplatz %.0f m ü. NN; Geländehöhe ±3 m einberechnet).", maxAGL, ground, aerodrome),
+		fmt.Sprintf("At this location: max. approx. %.0f m above ground (terrain %.0f m, aerodrome %.0f m AMSL; ±3 m terrain accuracy included).", maxAGL, ground, aerodrome)
 }

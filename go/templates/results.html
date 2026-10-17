@@ -129,6 +129,7 @@
   }
   .zone-rule > div + div { margin-top: .3rem; }
   .zone-rule-height { font-weight: 600; }
+  .zone-rule-link { color: var(--ok); }
   .zones-note { padding: .6rem 1rem; font-size: 10.5px; color: var(--muted); border-top: 1px solid var(--border); }
   .no-zones { padding: 1.5rem 1rem; text-align: center; color: var(--muted); font-size: 13px; }
 
@@ -473,7 +474,9 @@
                 <div class="zone-rule">
                   <div><span data-de>{{$rule.DE}}</span><span data-en>{{$rule.EN}}</span></div>
                   {{if $rule.HeightDE}}<div class="zone-rule-height"><span data-de>{{$rule.HeightDE}}</span><span data-en>{{$rule.HeightEN}}</span></div>{{end}}
+                  {{if $rule.LocalDE}}<div class="zone-rule-height"><span data-de>{{$rule.LocalDE}}</span><span data-en>{{$rule.LocalEN}}</span></div>{{end}}
                   {{if $rule.ConditionsDE}}<div><span data-de>{{$rule.ConditionsDE}}</span><span data-en>{{$rule.ConditionsEN}}</span></div>{{end}}
+                  {{if $rule.LinkDE}}<div><a class="zone-rule-link" href="{{$rule.LinkDE}}" data-de target="_blank" rel="noopener" onclick="event.stopPropagation()">Rechtsgrundlage bei DiPUL ↗</a><a class="zone-rule-link" href="{{$rule.LinkEN}}" data-en target="_blank" rel="noopener" onclick="event.stopPropagation()">Legal basis at DiPUL ↗</a></div>{{end}}
                 </div>
                 {{end}}
                 {{if index . "legalReference"}}
@@ -586,6 +589,12 @@
         <span class="detail-key">Kp-Index</span>
         <span class="detail-val {{if $a.KpOK}}ok{{else}}warn{{end}}">{{printf "%.1f" $a.KpIndex}}</span>
       </div>
+      {{if .HasGround}}
+      <div class="detail-row">
+        <span class="detail-key" data-de>Geländehöhe</span><span class="detail-key" data-en>Terrain elevation</span>
+        <span class="detail-val">{{printf "%.0f" .GroundMSL}} m <span data-de>ü. NN</span><span data-en>AMSL</span></span>
+      </div>
+      {{end}}
       <div class="detail-title-row" style="border-top:1px solid var(--border);padding-top:.5rem;margin-top:.5rem">
         <div>
           <span>METAR / TAF</span>

@@ -236,7 +236,8 @@ func (h *ResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		switch z.TypeCode {
 		case "FLIGHT_RESTRICTION", "U_NFZ":
 			hasRedZone = true
-		case "CONTROL_ZONE", "AIRPORT", "AIRFIELD_LAW", "MILITARY":
+		// DiPUL reports control zones as U_CTR; CONTROL_ZONE is the older code.
+		case "CONTROL_ZONE", "U_CTR", "AIRPORT", "AIRFIELD_LAW", "MILITARY":
 			hasOrangeZone = true
 		}
 	}

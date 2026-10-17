@@ -155,7 +155,12 @@
       font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
       font-size: 15px;
       line-height: 1.5;
+      /* Column layout: content grows, the footer sits at the bottom of the
+         first screen whatever its height (dvh excludes mobile browser bars). */
       min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
       transition: background .2s, color .2s;
     }
 
@@ -236,6 +241,7 @@
 
     /* ── Footer ── */
     .site-footer {
+      margin-top: auto;
       border-top: 1px solid var(--border);
       padding: .85rem 1.25rem;
       font-size: 11px;

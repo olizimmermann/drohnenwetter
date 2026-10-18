@@ -60,6 +60,13 @@ type apiLocation struct {
 	Lat     float64 `json:"lat"`
 	Lon     float64 `json:"lon"`
 	Address string  `json:"address"`
+	// Terrain height at the location (DiPUL elevation model); nil if unavailable.
+	Terrain *apiTerrain `json:"terrain"`
+}
+
+type apiTerrain struct {
+	ElevationMSLM float64 `json:"elevation_msl_m"`
+	AccuracyM     float64 `json:"accuracy_m"`
 }
 
 type apiVerdict struct {
@@ -151,6 +158,28 @@ type apiZoneArea struct {
 	Lower          *apiLimit       `json:"lower,omitempty"`
 	Upper          *apiLimit       `json:"upper,omitempty"`
 	Geometry       json.RawMessage `json:"geometry,omitempty"`
+	// Plain-language rule behind the area and the DiPUL legal-basis link.
+	Rule          *apiZoneRule `json:"rule,omitempty"`
+	LegalBasisURL string       `json:"legal_basis_url,omitempty"`
+	// DFS control zones 2–4: general-clearance height limit at this location.
+	CTRHeightLimit *apiCTRHeightLimit `json:"ctr_height_limit,omitempty"`
+}
+
+type apiZoneRule struct {
+	Summary    string `json:"summary"`
+	CTRZone    int    `json:"ctr_zone,omitempty"`
+	HeightRule string `json:"height_rule,omitempty"`
+	Conditions string `json:"conditions,omitempty"`
+	AtLocation string `json:"at_location,omitempty"`
+}
+
+type apiCTRHeightLimit struct {
+	// MaxAGLM is the conservative limit above ground (terrain accuracy
+	// included, rounded down). 0 = no general clearance at this location.
+	MaxAGLM          float64 `json:"max_agl_m"`
+	GeneralClearance bool    `json:"general_clearance"`
+	TerrainMSLM      float64 `json:"terrain_msl_m"`
+	AerodromeMSLM    float64 `json:"aerodrome_msl_m"`
 }
 
 type apiLimit struct {
@@ -336,6 +365,7 @@ func logAPIEvent(ev *apiEvent, d time.Duration) {
 }
 
 func round3(v float64) float64 { return math.Round(v*1000) / 1000 }
+func round1(v float64) float64 { return math.Round(v*10) / 10 }
 
 // ── Mapping ───────────────────────────────────────────────────────────────────
 
@@ -370,7 +400,7 @@ func buildAPIResponse(geo *api.GeocodeResult, f *allFetched, evl evaluation, c a
 		RequestID:   c.requestID,
 		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
 		Cached:      cached,
-		Location:    apiLocation{Lat: geo.Lat, Lon: geo.Lon, Address: geo.Title},
+		Location:    apiLocation{Lat: geo.Lat, Lon: geo.Lon, Address: geo.Title, Terrain: terrain(f.ground)},
 		Disclaimer:  pick(disclaimerDE, disclaimerEN),
 		Zones:       []apiZone{},
 	}
@@ -478,6 +508,19 @@ func buildAPIResponse(geo *api.GeocodeResult, f *allFetched, evl evaluation, c a
 				Lower:          limit(area, "lowerLimit"),
 				Upper:          limit(area, "upperLimit"),
 			}
+			if rule := ZoneRule(area); rule.HasRule {
+				za.Rule = &apiZoneRule{
+					Summary:    pick(rule.DE, rule.EN),
+					CTRZone:    rule.CTRZone,
+					HeightRule: pick(rule.HeightDE, rule.HeightEN),
+					Conditions: pick(rule.ConditionsDE, rule.ConditionsEN),
+					AtLocation: pick(rule.LocalDE, rule.LocalEN),
+				}
+				za.LegalBasisURL = pick(rule.LinkDE, rule.LinkEN)
+			} else if link, _ := area[keyLinkDE].(string); link != "" {
+				za.LegalBasisURL = pick(link, firstString(area, keyLinkEN))
+			}
+			za.CTRHeightLimit = ctrHeightLimit(area)
 			if withGeometry {
 				if g, ok := area["geometry"]; ok && g != nil {
 					if raw, err := json.Marshal(g); err == nil {
@@ -519,6 +562,29 @@ func buildAPIResponse(geo *api.GeocodeResult, f *allFetched, evl evaluation, c a
 	}
 
 	return resp
+}
+
+func terrain(e *api.Elevation) *apiTerrain {
+	if e == nil {
+		return nil
+	}
+	return &apiTerrain{ElevationMSLM: round1(e.MSL), AccuracyM: e.RMSE}
+}
+
+// ctrHeightLimit returns the limit computed by enrichZones, or nil.
+func ctrHeightLimit(area map[string]interface{}) *apiCTRHeightLimit {
+	maxAGL, ok1 := area[keyCTRMaxAGL].(float64)
+	ground, ok2 := area[keyGroundMSL].(float64)
+	aerodrome, ok3 := area[keyAerodromeMSL].(float64)
+	if !ok1 || !ok2 || !ok3 {
+		return nil
+	}
+	return &apiCTRHeightLimit{
+		MaxAGLM:          math.Max(maxAGL, 0),
+		GeneralClearance: maxAGL > 0,
+		TerrainMSLM:      round1(ground),
+		AerodromeMSLM:    round1(aerodrome),
+	}
 }
 
 func altValues(in []assessment.AltEntry) []apiAltValue {

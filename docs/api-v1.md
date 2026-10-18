@@ -48,7 +48,10 @@ curl -H 'X-API-Key: <Ihr Schlüssel>' \
   "request_id": "c9c45cc6d3901764",
   "generated_at": "2026-10-09T21:25:52Z",
   "cached": false,
-  "location": { "lat": 48.137, "lon": 11.575, "address": "Marienplatz, 80331 München" },
+  "location": {
+    "lat": 53.551, "lon": 9.993, "address": "Rathausmarkt 1, 20095 Hamburg",
+    "terrain": { "elevation_msl_m": 6, "accuracy_m": 3 }
+  },
   "verdict": {
     "flyable": false,
     "weather_flyable": true,
@@ -67,13 +70,26 @@ curl -H 'X-API-Key: <Ihr Schlüssel>' \
   },
   "kp": { "available": true, "value": 1.3, "ok": true },
   "cloud_base": {
-    "icao": "EDDM", "airport": "München",
+    "icao": "EDDH", "airport": "Hamburg",
     "metar": { "cloud_base_ft": 3500, "cloud_base_m": 1067, "visibility_m": 9999 },
     "taf":   { "cloud_base_ft": 2500, "cloud_base_m": 762, "min_visibility_m": 8000 }
   },
   "zones": [
-    { "type_code": "CONTROL_ZONE", "severity": "orange",
-      "areas": [{ "name": "CTR München", "lower": { "altitude": "0", "unit": "FT", "reference": "AGL" } }] }
+    { "type_code": "U_CTR", "severity": "orange",
+      "areas": [{
+        "name": "Hamburg (EDDH) Zone 4",
+        "legal_reference": "NfL 2026-1-3960",
+        "lower": { "altitude": "0", "unit": "m", "reference": "AGL" },
+        "rule": {
+          "summary": "Kontrollzone: Flugverkehrskontrollfreigabe nötig. …",
+          "ctr_zone": 4,
+          "height_rule": "Zone 4: allgemeine Freigabe bis 100 m über Flugplatzhöhe oder 50 m über Grund – …",
+          "conditions": "Hindernisnah (max. 30 m seitlich, 15 m oberhalb eines Hindernisses) auch höher. …",
+          "at_location": "An diesem Standort: max. ca. 100 m über Grund (Gelände 6 m, Flugplatz 16 m ü. NN; …)."
+        },
+        "legal_basis_url": "https://…",
+        "ctr_height_limit": { "max_agl_m": 100, "general_clearance": true, "terrain_msl_m": 6, "aerodrome_msl_m": 16 }
+      }] }
   ],
   "sources": { "utm": "ok", "openweather": "ok", "kp": "ok", "dipul": "ok", "opensky": "disabled" },
   "disclaimer": "Entscheidungshilfe ohne Gewähr. …"
@@ -92,7 +108,11 @@ curl -H 'X-API-Key: <Ihr Schlüssel>' \
 | `weather.*` | Werte je Höhe über Grund (m). `ok`/`warn`/`crit` = Grenzwertstatus |
 | `kp` | Geomagnetische Aktivität (Warnung bei Kp > 4: GPS-/Funkstörungen möglich) |
 | `cloud_base` | Wolkenuntergrenze und Sicht vom nächstgelegenen Flughafen (METAR = aktuell, TAF = Vorhersage, ungünstigster Wert); `null`, wenn nicht verfügbar |
+| `location.terrain` | Geländehöhe am Standort in m ü. NN (DiPUL-Höhenmodell) mit Genauigkeit (±m); `null`, wenn nicht verfügbar |
 | `zones` | DiPUL-Luftraumzonen am Standort. `severity`: `red`, `orange`, `info` |
+| `zones[].areas[].rule` | Regel hinter der Zone in Kurzform (§ 21h / § 17 LuftVO, DFS-Kontrollzonen nach NfL 2026-1-3960). Bei Kontrollzonen zusätzlich `ctr_zone` (1–4), `height_rule`, `conditions` und `at_location` (Höhengrenze an diesem Standort). Nur Orientierung – verbindlich ist der Rechtstext |
+| `zones[].areas[].legal_basis_url` | Link zur Rechtsgrundlage bei DiPUL |
+| `zones[].areas[].ctr_height_limit` | Nur DFS-Kontrollzonen 2–4: zulässige Höhe über Grund an diesem Standort (`max_agl_m`, Geländeungenauigkeit eingerechnet, abgerundet). `general_clearance: false` = hier keine allgemeine Freigabe, individuelle Freigabe nötig. Fehlt, wenn Gelände- oder Flugplatzhöhe nicht ermittelbar war |
 | `sources` | Status je Datenquelle: `ok`, `failed`, `disabled` |
 | `traffic` | Live-Luftverkehr im Umkreis von ca. 11 km – **nur bei freigeschalteten Schlüsseln** |
 | `cached` | Daten stammen aus dem 5-Minuten-Cache (gleicher Standort ±~110 m) |

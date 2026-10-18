@@ -304,3 +304,63 @@ func TestFetchAllCacheHitWithoutTraffic(t *testing.T) {
 		t.Error("cache entry mutated")
 	}
 }
+
+func TestAPIZoneRulesAndHeights(t *testing.T) {
+	f := defaultFetched()
+	f.ground = &api.Elevation{MSL: 120, RMSE: 3}
+	f.zones = []api.AffectedArea{
+		{TypeCode: "U_CTR", Areas: []map[string]interface{}{
+			{"name": "Frankfurt (EDDF) Zone 2", "legalReference": nflCTR2026},
+			{"name": "Frankfurt (EDDF) Zone 3", "legalReference": nflCTR2026},
+		}},
+		{TypeCode: "HOSPITAL", Areas: []map[string]interface{}{
+			{"name": "Klinikum", "externalReference": "h1", "legalReference": "§ 21h Abs. 3 (3) LuftVO"},
+		}},
+	}
+	enrichZones(f.zones, []api.UASZone{
+		// Aerodrome 111 m: zone 2 floor 136 m, zone 3 floor 156 m AMSL.
+		{Name: "Frankfurt (EDDF) Zone 2", LowerM: 136, LowerRef: "AMSL", LinkDE: "https://example.org/ctr"},
+		{Name: "Frankfurt (EDDF) Zone 3", LowerM: 110, LowerRef: "AMSL"}, // terrain above the ceiling
+		{ID: "h1", LinkDE: "https://example.org/de", LinkEN: "https://example.org/en"},
+	}, f.ground)
+
+	h, _, _ := newTestAPI(t, f)
+	rec := doAPI(h, "/api/v1/assessment?lat=50.11&lon=8.68&lang=en", authed(nil))
+	var resp apiResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+
+	if tr := resp.Location.Terrain; tr == nil || tr.ElevationMSLM != 120 || tr.AccuracyM != 3 {
+		t.Errorf("terrain %+v", tr)
+	}
+
+	z2 := resp.Zones[0].Areas[0]
+	if l := z2.CTRHeightLimit; l == nil || l.MaxAGLM != 13 || !l.GeneralClearance || l.AerodromeMSLM != 111 || l.TerrainMSLM != 120 {
+		t.Errorf("zone 2 limit %+v", l)
+	}
+	if r := z2.Rule; r == nil || r.CTRZone != 2 || r.HeightRule == "" || r.Conditions == "" || !strings.Contains(r.AtLocation, "13 m above ground") {
+		t.Errorf("zone 2 rule %+v", r)
+	}
+	if z2.LegalBasisURL != "https://example.org/ctr" {
+		t.Errorf("zone 2 link %q", z2.LegalBasisURL)
+	}
+
+	z3 := resp.Zones[0].Areas[1]
+	if l := z3.CTRHeightLimit; l == nil || l.MaxAGLM != 0 || l.GeneralClearance {
+		t.Errorf("zone 3 limit %+v", l)
+	}
+
+	hosp := resp.Zones[1].Areas[0]
+	if hosp.CTRHeightLimit != nil || hosp.Rule == nil || hosp.Rule.Summary != paragraph21h[3].EN || hosp.LegalBasisURL != "https://example.org/en" {
+		t.Errorf("hospital %+v rule %+v", hosp, hosp.Rule)
+	}
+}
+
+func TestAPITerrainNullWhenUnavailable(t *testing.T) {
+	h, _, _ := newTestAPI(t, defaultFetched())
+	rec := doAPI(h, "/api/v1/assessment?lat=52.52&lon=13.405", authed(nil))
+	if !strings.Contains(rec.Body.String(), `"terrain":null`) {
+		t.Errorf("want terrain null, got %s", rec.Body.String())
+	}
+}
